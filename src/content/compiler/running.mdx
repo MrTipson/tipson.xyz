@@ -1,0 +1,70 @@
+---
+title: 'Running the compilers'
+description: >-
+  Showing how to run the compilers
+draft: false
+changes:
+  - date: 2024-11-22
+    author: '1'
+    comment: Initial post
+---
+# Running the compilers
+The compilers use GNU's assembler (*as*) and linker (*ld*) to transform generated assembly instructions into executables. 
+For ease of use, the [Makefile](#makefile) may also be used.
+
+Testing was done on a *Raspberry pi 2B*, but you may change the target CPU (or FPU) in the Makefile. 
+Both (*p0* and *p1*) compilers generate ARM32 instructions.
+
+## Running the bootstrap compiler
+Input/output is done using *stdin*/*stdout*, for which you can use pipes. For example:
+```bash
+cat src/*.p0 | bin/p0 > bin/p1.s
+as -mcpu=$CPU -mfpu=$FPU -o bin/p1.o bin/p1.s
+ld -o bin/p1 bin/p1.o
+```
+
+## Running the p1 compiler
+The same applies for the p1 compiler.
+```bash
+bin/p1 < test/src/helloworld.p1 > bin/test/helloworld.s
+```
+
+# Makefile
+The **Makefile** can be used for many things:
+```bash
+// Bootstrapping the compilers
+make all # compiles bin/p0, bin/p1 and the helper objects
+```
+
+```bash
+// Compiling one of the test programs
+make bin/test/helloworld
+```
+
+```bash
+// Running one of the test programs
+make helloworld
+```
+
+```bash
+// Running a test
+make test/helloworld
+```
+
+```bash
+// Running all tests
+make test
+```
+ 
+```bash
+// Deleting the binaries
+make clean
+```
+
+```bash
+// Forcing a full recompilation
+make clean all
+# or
+make clean test
+# ...
+```

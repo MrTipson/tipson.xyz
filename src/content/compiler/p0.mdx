@@ -1,0 +1,284 @@
+---
+title: 'Bootstrapped compiler: Stage 0'
+description: >-
+  Defining a simple programming language and writing a compiler for it in
+  assembly
+draft: false
+changes:
+  - date: 2024-11-20
+    author: '1'
+    comment: Initial post
+---
+
+# Stage 0 compiler
+> p0 -> assembly, written in assembly
+
+Since this stage of the compiler is written in assembly, the p0 language will be kept fairly simple,
+in order to keep the complexity down. It turned out that it was **too** simple initially, which is
+why some additional features were added when I was revisiting this project (see commits
+[8af7e8d](https://github.com/MrTipson/compiler/commit/8af7e8dad81ffc4150663385924f8d67d39c9c93)-[b27b91e](https://github.com/MrTipson/compiler/commit/b27b91eb0a192fca74725bfa921b788b57041464)).
+
+The p0 language thus only consists of:
+- assignments,
+- keywords,
+- and comments (starting at # and lasting until the end of the line).
+
+Furthermore, the compiler does not preety print errors, relying solely on return values to signal them.
+
+---
+
+## Expressions
+Expressions in the language are implemented using *postfix* or *reverse polish* notation, because it enables the use of 
+complex expressions (subexpressions, operator priority) with a very simple implementation:
+- variables load the value from memory and push it on the stack,
+- number literals load the value in the register and push it on the stack,
+- operators (**+**, **-**, **\***, **/**, **%**, **>**, **=>**, **\<**, **=\<**, **==**, **=!**, **&** or **|**) pop 
+2 elements from thef stack and push the result back on.
+
+> Note: **=\<**, **=>** and **=!** start with **=** to simplify some parsing logic.
+
+Using the stack like this is excessive, but we don't have to worry about trashing intermediate values in the registers.
+However, expression calculation does not use its own stack, so wrongly formulated expressions can cause the program to 
+jump back to a garbage return address.
+
+---
+
+## Assignments
+Assignments are of the form `var = <expr>`, and merely retrieve the result of an expression and store it into the variable.
+
+---
+
+## Keywords
+To help distinguish between assignments and keywords, keywords are prefixed with **:**. Keywords
+themselves are distinguished between themselves only by their first letter, further simplifying the
+parsing process, while still allowing the usage of longer names, helping maintain code readability.
+
+### Input/Output
+The keywords in this category do not require any extraordinary treatment - for the most part, it is merely loading
+an address (either of a variable or the string literal), and using that (along with some constants) to invoke a syscall.
+String literals which appear in the keywords are saved in memory and emitted in the data segment at the end of the
+produced assembly.
+
+<figure>
+Letter | Syntax | Functionality
+--|--------|--------------
+g | :getchar(*var*) | Read a character from **stdin** into *var*
+p | :putchar(*var*) | Print a character from *var* to **stdout**
+u | :uchar(*var*)   | Print a character from *var* to **stderr**
+r | :raw(*string literal*) | Print a string to **stdout**
+t | :throw(*string literal*) | Print a string to **stderr**
+e | :exit(*expr*) | Stop execution with the result of *expr* as the status code
+</figure>
+
+For example, `:raw("Hello world")` would get compiled into:
+<figure>
+```asm
+// test.asm
+	mov r7,#4       @ Syscall (write)
+	mov r0,#1       @ File descriptor (stdout)
+	ldr r1,=s0      @ String address
+	ldr r2,=slen0   @ String length
+	svc 0           @ Invoke syscall
+
+@ somewhere down the line
+.data
+s0: .ascii "Hello world"
+slen0 = .-s0
+```
+</figure>
+
+
+### Memory
+Its worth to talk about how memory is handled in this very primitive language.
+
+First of all, available variables are predetermined (**a**..**z**), and they are all stored in the data segment. When used, their address is loaded using labels.
+
+General memory access is made available through keywords **load** and **store**, which manipulate the contents of
+a linear array (the size of which is hardcoded in the compiler):
+
+<figure>
+Letter | Syntax | Functionality
+--|--------|--------------
+l | :load(*var*,*expr*) | Load value from memory array at location determined by *expr* into variable *var*
+s | :store(*expr1*,*expr2*) | Store result of *expr1* to memory array at location determined by *expr2*
+</figure>
+
+For example `d = <expr>` (setting a variable) is compiled into:
+<figure>
+```asm
+	pop	{r0}	    @ expression result
+	ldr	r1,=d       @ load address of d in reg1
+	str	r0,[r1]     @ store reg0 at address reg1
+```
+</figure>
+
+For example, `:load(a,<expr>)` would be compiled as:
+<figure>
+```asm
+	pop	{r0}	    @ expression result
+	ldr r1,=a       @ load address of a in reg1
+	ldr r2,=mem     @ load start of memory array
+	ldr r0,[r2, r0, LSL #2] @ r0 = M[mem + 4*r0]
+	str r0,[r1]     @ store value to variable a
+```
+</figure>
+
+
+### Flow control
+These 'keywords' were handled similarly to other actual keywords, but would traditionally be handled as separate
+constructs (in the case of if, while and functions) or as part of expressions (call). 
+
+<figure>
+Letter | Syntax | Functionality
+--|--------|--------------
+i | :if(*\<expr>*)\{ ... \} else \{ ... \} | Conditional execution based on *\<expr>*
+w | :while(*\<expr>*)\{ ... \} | Loop execution based on *\<expr>*
+f | :fun(name)\{ ... \}   | Function
+c | :call(name) | Function call
+</figure>
+
+Another thing they (*not including call*) have in common is that they all do something when their respective code block is closed (i.e. 'their' } is reached). In order to resolve which construct it belonged to, the stack is used to store the state, label number and chained if label. This meant that nesting of **if**, **else**, **else if** and **while** blocks was possible without much further hassle (okay, **functions** probably as well, but I never tried it).
+
+##### Oh right, labels
+Not much to say, except for the fact that they were prefixed with L, and suffixed by a label id.
+
+
+Next, we'll take a look at the implementations for each of these keywords, although they are all quite similar.
+
+#### If/Else/Else if
+Conditional statements are implemented in the form of `:if(<expr>){ ... }`, `:if(<expr>){ ... } else { ... }` and 
+`:if(<expr>){ ... } else if(<expr>) ...`. All variations start the same way, so if we take for example `:if(<expr>) {`, it would be compiled into:
+
+<figure>
+```asm
+	pop r0			@ expression result
+	cmp r0,#0       @ check if c == 0
+	beq Lneg0       @ if so, jump to the negative label
+	@ otherwise we fall through the positive branch
+	@ ...
+```
+</figure>
+
+At the same time, the compiler pushes the state, label id and chained label id (same as label id here) onto the stack, 
+indicating that it is currently inside an if block.
+
+Its worth noting that this way of implementing (positive branch follows check, negative is jumped to) is not by chance. 
+It is done to keep the same order as in the source code, allowing all following statements to be directly compiled as well.
+
+The cases of `} else {`, `} else if(<expr>) {` and `}` are covered in the [code block endings](#code-blocks).
+
+
+#### While
+Since while does not differentiate much from if, the description shall be quite brief.
+
+`:while(<expr>) {`, would be compiled into:
+
+<figure>
+```asm
+Lloop0:
+	pop {r0}       @ expression result
+	cmp r0,#0       @ check if c == 0
+	beq Lloop_end0  @ if loop condition is false, jump to end
+```
+</figure>
+
+In this case, we can notice the inclusion of the `Lloop` label, allowing the code at the end of the code block to 
+jump back the condition check. Also, the loop condition is checked before any statements, as the expression is encountered before the loop body.
+
+As before, the compiler also pushes the state, label id and chained if id, to indicate that its currently inside a while block.
+
+
+#### Function
+Functions are also quite simple (since the language does not accomodate for arguments). For example, `:fun(main){` would compile into:
+
+<figure>
+```asm
+Fmain:          @ functions are prefixed with F
+	push {lr}   @ save return address onto stack
+```
+</figure>
+
+The compiler also pushes the state, label id and chained if id onto the stack (*both ids are set to -1, since compiling 
+functions doesn't need them*).
+
+##### Function calls
+Since there are no arguments to take care of, function calls are just translated to their assembly equivalent.
+<figure>
+```asm
+	bl  Fmain   @ call main function
+```
+</figure>
+
+
+#### Code blocks
+It is time to take care of code block endings. When the compiler reaches the end of a code block ( **}** ), 
+it must first determine which state its in, which is done by retrieving the state, label id and chained if id from the stack.
+
+##### If
+If the code block belonged to an if statement, the compiler generates the footer for the positive branch:
+<figure>
+```asm
+	b   Lend0   @ skip negative branch
+.pool
+Lneg0:          @ label for negative branch
+```
+</figure>
+
+After that, it determines if there is an else block present. If so, the state is changed to 'else', 
+and pushed back to the stack along with the same label id, and the same chained if id.
+
+If the compiler determines that it encountered an `else if` statement, it is treated as a normal if,
+except that the old chained if id is used for the id of the **Lend** label, and is retained when pushing the state and ids on the stack.
+
+If no else is present, the compiler also generates the end label using the id from the chained if id field. This way the 
+end label is shared for all ifs in the chain:
+<figure>
+```asm
+Lend0:          @ label for end
+```
+</figure>
+
+##### Else
+Since else is also a valid state (generated at the end of an if codeblock), it is also handled separately. 
+It generates the same end label as above, but only after the statements for the negative branch have been compiled.
+
+##### While
+When the end of a while body is encountered, the following code is generated:
+<figure>
+```asm
+b   Lloop0      @ loop condition check
+Lloop_end0:         @ loop end
+```
+</figure>
+
+##### Function
+When the function ends, the following code is generated:
+<figure>
+```asm
+	pop {lr}        @ retrieve return address
+	bx  lr          @ return from function
+.pool               @ generate literal pool
+```
+</figure>
+
+##### We're going swimming?
+You might have noticed the `.pool` directive in the generated assembly. It instructs the GNU assembler to place a literal 
+pool at the specified location, which is needed in arm32 assembly for loading some constants from memory 
+(if a constant is too big to fit as immediate operand - mostly a limitation for the 32bit systems). This ensures that literal 
+pools are *close enough*.
+
+---
+
+## Lessons
+Initially, the **p0** language was a bit underpowered:
+- expression limitations (simple assignments with at most 1 operator)
+- if cascades (without `else if`, the resulting code had *pyramids of doom*)
+
+These problems were taken care of when I revisited the project recently (about 2000 lines of code were removed as a result).
+Still, some problems still exist, and might be worth looking at in the future:
+- code organization
+> My assembly code is not very clean, and could use a rewrite.
+- variable limitations
+> Using variables a-z is quite confusing. Allowing longer variable names would probably improve readability.
+
+Not everything is bad though; functions, loops, i/o and memory are all good enough, and you can end up getting used to them.

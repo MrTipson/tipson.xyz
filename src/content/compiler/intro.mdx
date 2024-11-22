@@ -1,0 +1,53 @@
+---
+title: 'Bootstrapped compiler: Introduction'
+description: >-
+  Bootstrapping a compiler for a C-like language from scratch.
+draft: false
+changes:
+  - date: 2024-11-22
+    author: '1'
+    comment: Initial post
+---
+
+# Intro
+This all started with my fascination about the way we are able to use various levels of abstraction and design to create 
+increasingly complex systems. This is of course not exclusive to computer science, and can be observed in many aspects 
+of everyday life, but it is still interesting to think about and appreciate these things when we stumble upon them.
+
+Anyways, that interest led me to enroll in a compilers course for my 3rd year in college. It was interesting, it truly was, 
+but I wanted to do it differently. Instead of doing it in java (as we did), and using libraries (Antlr + an outlined 
+structure to work within), I wanted to see how it would go if I had nothing. You could say that I wanted to start at the 
+bottom, and see how high I could make it.
+
+## The Plan
+The goal of this project was to create a compiler for a C-like language, from scratch. But of course, I never intended to write the entire thing in assembly.
+
+My plan was to create a simple language (called *p0*) and use it to create a compiler for my C-like language (called *p1*). In compiler development, this process is called **bootstrapping**.
+
+> In computer science, bootstrapping is the technique for producing a self-compiling compiler — that is, a compiler (or 
+> assembler) written in the source programming language that it intends to compile. An initial core version of the compiler 
+> (the bootstrap compiler) is generated in a different language (which could be assembly language); successive expanded 
+> versions of the compiler are developed using this minimal subset of the language. The problem of compiling a self-compiling 
+> compiler has been called the chicken-or-egg problem in compiler design, and bootstrapping is a solution to this problem. 
+>
+> *Definition from [the free dictionary](https://encyclopedia.thefreedictionary.com/Bootstrapping+(compilers))*.
+
+So the compilers that will be written are:
+- *p0* -> *assembly*, written in assembly
+- *p1* -> *assembly*, written in *p0*
+
+Going by the definition, we would have to implement:
+- *p1* -> *assembly*, written in *p1*
+
+as well, but as the language *p1* was not intended as the last iteration, it wasnt included in the scope of this journey. 
+Also, in my case, *p0* was not a subset of *p1*.
+
+## Prerequisites
+At first, I wasn't really sure how I was going to approach it. Since I'm not very familiar with assembly programming, 
+and I've never done it on arm before, I was reading up on some resources that would help me start out, such as:
+ - [ARM assembler in Raspberry Pi (think in geek)](https://thinkingeek.com/2013/01/09/arm-assembler-raspberry-pi-chapter-1/)
+ - [ARM Assembly Basics (azeria labs)](https://azeria-labs.com/writing-arm-assembly-part-1/)
+ - [Instruction set reference (arm docs)](https://developer.arm.com/Architectures/A32%20Instruction%20Set%20Architecture#Technical-Information)
+ - [Introduction to Computer Organization: ARM Assembly Using the Raspberry Pi (Robert G Plantz)](https://bob.cs.sonoma.edu/IntroCompOrg-RPi/intro-co-rpi.html)
+
+ Once I had the basic workflow working (compilation, linking), it was time to start thinking about what I actually set out to do. 

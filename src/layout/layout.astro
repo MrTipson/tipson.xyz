@@ -1,0 +1,60 @@
+---
+import { Button, Icon } from "@/components";
+import "@/styles/global.css";
+interface Props {
+	title: string;
+	description: string;
+}
+
+const { title, description } = Astro.props;
+import Config from "astro.config.mjs";
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content={description} />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+	</head>
+	<body class="bg-c1-fill grid grid-rows-[max-content_minmax(0,1fr)] bottom-0 text-c1 font-mono">
+		<header class="bg-c2-fill flex justify-between px-6 py-2 row-span-1 bg-gradient-to-tr to-sky-700 from-blue-900">
+			<div class="flex items-center gap-2 md:gap-8">
+				<a href="/" class="text-3xl font-extrabold text-c1 font-mono">tipson.xyz</a>
+			</div>
+			<div class="flex gap-1">
+				<Button variant="ghost" size="icon">
+					<a href="https://github.com/MrTipson/">
+						<Icon variant="github" />
+					</a>
+				</Button>
+				<Button variant="ghost" size="icon">
+					<a href="https://steamcommunity.com/id/MrTipson/">
+						<Icon variant="steam" />
+					</a>
+				</Button>
+				<!--<ModeToggle client:load />-->
+			</div>
+		</header>
+		<div class="relative min-w-0">
+			<slot />
+		</div>
+	</body>
+</html>
+
+<style>
+	header button:hover::after {
+		display: block;
+		margin: auto;
+		content: '';
+		height: 12px;
+		width: 0px;
+		transform: rotate(180deg);
+		border-color: currentColor transparent;
+		border-style: solid;
+		border-width: 6px 6px 0px 6px;
+	}
+</style>

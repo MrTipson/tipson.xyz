@@ -1,0 +1,302 @@
+---
+title: 'Inspecting the Stage 1 compiler'
+description: >-
+  Inspecting the compiler for our C-like language
+draft: false
+changes:
+  - date: 2024-11-22
+    author: '1'
+    comment: Initial post
+---
+# Inspecting the p1 compiler
+
+In this section, we'll take a look at how we can take examine the compiler during runtime to better understand how it works. To do this, I'll be using the following example program:
+
+```c
+void printf(char* fmt, int arg1, int arg2);
+
+void main() {
+	int x = 5 + 10 * 2;
+	printf("Result is: %d\n", x, 0);
+}
+```
+
+First, lets check that the compiler is working:
+```bash
+make test
+# Result is: 25
+```
+
+
+To inspect the compiler memory, we'll use **gdb**. We can insert a breakpoint at any point in **prev.p0** by calling the break function (`:call(break)`). I'll be adding a breakpoint after each described phase, and also just before the compiler exits. In gdb, we can then pipe in the our example, and setup the breakpoints:
+
+```bash
+gdb bin/p1
+
+# b is short for breakpoint
+(gdb) b Fbreak
+
+(gdb) run < test/test.p1
+# there may be other breakpoints in the program, so using c (continue) will skip until the next breakpoint
+```
+
+
+A quick reminder of the memory array and how it was used in the *p1* compiler:
+- the memory array starts at the label *mem*
+- all memory accesses are done using offsets
+- each memory cell is 4 bytes wide (integers)
+- the compiler reads the input file into memory from offset **0** to offset **b**
+- tokenization phase is from **b** to **e**
+- syntax phase is from **e** to **g**
+- semantic phase is from **g** to **h** (although the memory is only used temporarily for name resolving, global declarations will remain)
+- memory phase is from **h** to **j** (global variables and string literals)
+
+## Input program
+
+Lets first examine the memory at the beginning and till the offset saved in the variable **b**. This should contain just the copy of the input program:
+```bash
+(gdb) print (int)b
+# 116
+
+# examine 116 words (w) (=4 bytes) and print them out as characters (c)
+(gdb) x/116cw (int*)&mem
+
+0x415fe:	118 'v'	111 'o'	105 'i'	100 'd'
+0x4160e:	32 ' '	112 'p'	114 'r'	105 'i'
+0x4161e:	110 'n'	116 't'	102 'f'	40 '('
+0x4162e:	99 'c'	104 'h'	97 'a'	114 'r'
+0x4163e:	42 '*'	32 ' '	102 'f'	109 'm'
+0x4164e:	116 't'	44 ','	32 ' '	105 'i'
+0x4165e:	110 'n'	116 't'	32 ' '	97 'a'
+0x4166e:	114 'r'	103 'g'	49 '1'	44 ','
+0x4167e:	32 ' '	105 'i'	110 'n'	116 't'
+0x4168e:	32 ' '	97 'a'	114 'r'	103 'g'
+0x4169e:	50 '2'	41 ')'	59 ';'	10 '\n'
+0x416ae:	10 '\n'	118 'v'	111 'o'	105 'i'
+0x416be:	100 'd'	32 ' '	109 'm'	97 'a'
+0x416ce:	105 'i'	110 'n'	40 '('	41 ')'
+0x416de:	32 ' '	123 '{'	10 '\n'	9 '\t'
+0x416ee:	105 'i'	110 'n'	116 't'	32 ' '
+0x416fe:	120 'x'	32 ' '	61 '='	32 ' '
+0x4170e:	53 '5'	32 ' '	43 '+'	32 ' '
+0x4171e:	49 '1'	48 '0'	32 ' '	42 '*'
+0x4172e:	32 ' '	50 '2'	59 ';'	10 '\n'
+0x4173e:	9 '\t'	112 'p'	114 'r'	105 'i'
+0x4174e:	110 'n'	116 't'	102 'f'	40 '('
+0x4175e:	34 '"'	82 'R'	101 'e'	115 's'
+0x4176e:	117 'u'	108 'l'	116 't'	32 ' '
+0x4177e:	105 'i'	115 's'	58 ':'	32 ' '
+0x4178e:	37 '%'	100 'd'	92 '\\'	110 'n'
+0x4179e:	34 '"'	44 ','	32 ' '	120 'x'
+0x417ae:	44 ','	32 ' '	48 '0'	41 ')'
+0x417be:	59 ';'	10 '\n'	125 '}'	10 '\n'
+```
+
+
+
+## Lexical analysis
+Next, we can examine the recognised tokens, which are located between **b** and **e**. Comments will be added to indicate wheat each row indicates, but for more info, check out [token variants](/compiler/p1#token-variants).
+
+```bash
+(gdb) print ((int)e - (int)b)
+# 156
+
+(gdb) x/156dw ((int*)&mem + (int)b)
+0x417d6:	0	3	0	1       # 'void' (type=0,id=3) on line 1
+0x417e6:	2	5	6	1       # identifier (type=2,start=5,length=6) on line 1
+0x417f6:	14	0	0	1       # '(' (type=14) on line 1
+0x41806:	0	1	0	1       # 'char' (type=0,id=1) on line 1
+0x41816:	36	0	0	1       # '*' (type=36) on line 1
+0x41826:	2	18	3	1       # identifier (type=2,start=18,length=3) on line 1
+0x41836:	21	0	0	1       # ',' (type=21) on line 1
+0x41846:	0	0	0	1       # 'int' (type=0,id=0) on line 1
+0x41856:	2	27	4	1       # identifier (type=2,start=27,length=4) on line 1
+0x41866:	21	0	0	1       # ',' (type=21) on line 1
+0x41876:	0	0	0	1       # 'int' (type=0,id=0) on line 1
+0x41886:	2	37	4	1       # identifier (type=2,start=37,length=4) on line 1
+0x41896:	15	0	0	1       # ')' (type=15) on line 1
+0x418a6:	22	0	0	1       # ';' (type=22) on line 1
+0x418b6:	0	3	0	3       # 'void' (type=0,id=3) on line 3
+0x418c6:	2	50	4	3       # identifier (type=2,start=50,length=4) on line 3
+0x418d6:	14	0	0	3       # '(' (type=14) on line 3
+0x418e6:	15	0	0	3       # ')' (type=15) on line 3
+0x418f6:	16	0	0	3       # '{' (type=16) on line 3
+0x41906:	0	0	0	4       # 'int' (type=0,id=0) on line 4
+0x41916:	2	64	1	4       # identifier (type=2,start=64,length=1) on line 4
+0x41926:	1	0	0	4       # '=' (type=1,id=0) on line 4
+0x41936:	3	0	5	4       # constant(int) (type=3,id=0,value=5) on line 4
+0x41946:	39	0	0	4       # '+' (type=39) on line 4
+0x41956:	3	0	10	4       # constant(int) (type=3,id=0,value=10) on line 4
+0x41966:	36	0	0	4       # '*' (type=36) on line 4
+0x41976:	3	0	2	4       # constant(int) (type=3,id=0,value=2)
+0x41986:	22	0	0	4       # ';' (type=22) on line 4
+0x41996:	2	81	6	5       # identifier (type=2,start=81,length=6) on line 5
+0x419a6:	14	0	0	5       # '(' (type=14) on line 5
+0x419b6:	3	3	88	5       # constant(string) (type=3,id=3,start=88) with string_id=0
+0x419c6:	21	0	0	5       # ',' (type=21) on line 5
+0x419d6:	2	107	1	5       # identifier (type=2,start=107,length=1) on line 5
+0x419e6:	21	0	0	5       # ',' (type=21) on line 5
+0x419f6:	3	0	0	5       # constant(int) (type=3,id=0,value=0) on line 5
+0x41a06:	15	0	0	5       # ')' (type=15) on line 5
+0x41a16:	22	0	0	5       # ';' (type=22) on line 5
+0x41a26:	17	0	0	6       # '}' (type=17) on line 6
+0x41a36:	-1	-1	-1	-1      # lexical phase appends a safety ending token
+```
+
+
+String constants and identifiers contain pointers to where the name appears in the input program. Identifiers also contain the length, while string constants (literals) have implicit length (till the ending ").
+```bash
+(gdb) x/6cw ((int*)&mem + 5)
+# 0x41612:	112 'p'	114 'r'	105 'i'	110 'n'
+# 0x41622:	116 't'	102 'f'
+```
+
+
+## Syntax analysis
+For inspecting the syntax memory entries, a gdb macro was written for convenience (to format the output of syntax analysis into 5 columns and also print memory offsets instead of addresses). You can find this macro in [xmem](https://github.com/MrTipson/compiler/blob/master/xmem).
+
+Similar to the tokens, you can find more info about the structure of syntax entries in [syntax nodes](/compiler/p1#syntax-nodes).
+
+```bash
+# first, we load the macro
+(gdb) source xmem
+
+# then execute it
+(gdb) xmem
+
+272:    1    3    0    0    0         # type(3=void)
+277:    3  272  120    2  317         # function(272=type,120=ident,2=startdecl)
+282:    1    1    0    0    0         # type(1=char)
+287:    1    5  282    0    0         # type(5=ptr,282=basetype)
+292:    4  287  136    0   -1         # parameter(287=type,136=identifier)
+297:    1    0    0    0    0         # type(0=int)
+302:    4  297  148    0   -1         # parameter(297=type,148=identifier)
+307:    1    0    0    0    0         # type(0=int)
+312:    4  307  160    0   -1         # parameter(type=307,160=identifier)
+317:    3    0    0    1    0         # function(1=end)
+322:    1    3    0    0    0         # type(3=void)
+327:    3  322  176    0  412         # function(322=type,176=identifier,0=start)
+332:    1    0    0    0    0         # type(0=int)
+337:    2   23  204    0    0         # expression(23=const,204=value)
+342:    2   23  212    0    0         # expression(23=const,212=value)
+347:    2   23  220    0    0         # expression (23=const,220=value)
+352:    2    7  342  347    0         # expression(7=*,342=expr1,347=expr2)
+357:    2   10  337  352    0         # expression(10=+,337=expr1,352=expr2)
+362:    0  332  357  196   -1         # declcaration(332=type,357=expression,196=identifier)
+367:   10    0  228    0    0         # call(0=start,228=identifier)
+372:    2   23  236    0    0         # expression(23=const,236=value)
+377:   11  372    0    0    0         # argument(372=expression)
+382:    2   22  244    0    0         # expression(22=identifier,244=identifier)
+387:   11  382    0    0    0         # argument(382=expression)         
+392:    2   23  252    0    0         # expression(23=const,252=value)
+397:   11  392    0    0    0         # argument(392=expression)    
+402:   10    1    0  367    0         # call(1=end,367=start)
+407:    6  402    0    0    0         # expression statement (402=expression)
+412:    3    0    0    1    0         # function(1=end)
+```
+
+
+At the end of the syntax phase, its worth going through how subsequent phases will process the parsed syntax elements. Traditionally, the program would be represented by an abstract syntax tree, and that stil holds to some degree in our case (with some changes to accomodate for the mostly linear memory layout).
+
+**Types**, **declarations**, **expressions**, **expression statements**, **parameters** and **arguments** are represented by tree-like structures (hierarchy of substructures using pointers to connect them). In memory, these trees are saved in post-order notation (both subtrees first, then the root). 
+
+**Functions**, **if/else**, **while**, **call** and **structs** can contain an arbitrary amount of subexpressions/statements, which is why they are saved as start/end pairs. Subsequent phases can use these to maintain and update their current state.
+
+
+## Semantic analysis
+Since now we have a better understanding of how the memory entries are laid out, we can look more closely how type and name resolution is handled.
+
+### Type resolution
+The main task of type resolution is to check and enforce the type constraints of operators, assignments and function calls.
+
+Since all subexpressions appear before the expression that uses them, we can resolve types by moving linearly through the memory from syntax phase and update the expression entries as we go.
+
+Inspecting the memory again after the semantic phase will show us the resolved types:
+
+```bash
+(gdb) xmem
+# only part of the response is shown
+...
+332:    1    0    0    0    0       # type(0=int)
+337:    2   23  204    0  417       # expression(const,204=value,417=type)
+342:    2   23  212    0  423       # expression(const,212=value,423=type)
+347:    2   23  220    0  429       # expression(const,220=value,429=type)
+352:    2    7  342  347  429       # expression(*binop,342=expr1,347=expr2,429=type)
+357:    2   10  337  352  417       # expression(+binop,337=expr1,352=expr2,417=type)
+362:    0  332  357  196   -1       # declaration(332=type,357=initializer,196=identifier)
+...
+```
+
+
+We can see that the 5th column of expressions now contains information about their type. If we examine the memory at those locations (expression types have the same format as syntax types), we can see the following:
+
+```bash
+(gdb) x/5dw ((int*)&mem + 417)
+0x41c8e:	1	0	0	0
+0x41c9e:	362
+(gdb) x/5dw ((int*)&mem + 423)
+0x41ca6:	1	0	0	1
+0x41cb6:	0
+(gdb) x/5dw ((int*)&mem + 429)
+0x41cbe:	1	0	0	0
+0x41cce:	0
+```
+
+
+At first, this might seem confusing, since the entries can contain uninitialised fields, but the important part is that they are type entries(1) of type int (0).
+
+### Name resolution
+
+During name resolution, the following entries are updated:
+- identifier expressions (variable use)
+- named types (structs)
+- function calls
+
+A pointer to the corresponding declaration is added (or replaces their *identifier* field), or an error is raised if no such declaration was found.
+
+```bash
+272:    1    3    0    0    0       # type(void)
+277:    3  272  120    2  317       # function(type=272,identifier=120,start,type=317)
+... 
+362:    0  332  357  196   -1       # declaration(type=332,initializer=357,identifier=196) 
+367:   10    0  277    0    0       # call(start,function=277)
+372:    2   23  236    0  441       # expression(const,value=236,type=441)
+377:   11  372    0    0    0       # argument(expression=372)
+382:    2   22  244  362  332       # expression(variable,identifier=244,declaration=362,type=332)
+387:   11  382    0    0    0       # argument(expression=382)
+392:    2   23  252    0  448       # expression(const,value=252,type=448)
+397:   11  392    0    0    0       # argument(expression=392)
+402:   10    1    0  367  272       # call(end,start=367,type=272)
+...
+```
+
+
+On the example above, we can see that the call entry at offset **367** points to the function declaration at **277** (printf), and that the expression at **382** points at the variable declaration at **362**.
+
+## Memory
+```bash
+272:    1    3    0    0    0 
+277:    3  272  120    2  317       # declaration of function printf
+282:    1    1    0    0    0 
+287:    1    5  282    0    0 
+292:    4  287  136    0    4       # parameter 1 (offset=4)
+297:    1    0    0    0    0 
+302:    4  297  148    0    8       # parameter 2 (offset=8)
+307:    1    0    0    0    0 
+312:    4  307  160    0   12       # parameter 3 (offset=12)
+317:    3    0   20    1   12       # end of function (size=20)
+322:    1    3    0    0    0 
+327:    3  322  176    0  412       # definition of function main
+332:    1    0    0    0    0 
+337:    2   23  204    0  417 
+342:    2   23  212    0  423 
+347:    2   23  220    0  429 
+352:    2    7  342  347  429 
+357:    2   10  337  352  417 
+362:    0  332  357  196    4       # variable x (offset=4)
+...
+412:    3    0   12    1    0       # end of function (size=12)
+```
+
+
+There are a couple of observations we can make. The main one is that the offsets do not start at 0. Since the stack grows 'downwards' (i.e. from higher to lower memory addresses), starting writing at offset 0 would overwrite *size* bytes of the previous function.

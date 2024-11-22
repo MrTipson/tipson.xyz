@@ -1,16 +1,8 @@
 ---
-
+import L from "@/layout/layout.astro"
+const title = "Welcome";
+const description = "Wilkommen"
 ---
-
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<L {title} {description}>
+	<h1 class="bg-1-fill text-1 p-2">Astro</h1>
+</L>

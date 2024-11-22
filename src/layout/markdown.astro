@@ -1,0 +1,148 @@
+---
+export type SubDirectory = { items: SidebarEntry[], collapsed?: boolean }
+export type Link = { link: string }
+export type SidebarEntry = { label: string } & (SubDirectory | Link)
+
+import "@/styles/markdown.css";
+import type { MarkdownHeading } from "astro";
+import L from "@/layout/layout.astro";
+import type { AuthorType, MarkdownType } from "@/content/config";
+import { getEntry } from "astro:content";
+
+type Props = {
+	headings: MarkdownHeading[];
+	sidebar: SidebarEntry[];
+} & MarkdownType;
+const { title, description, headings, sidebar, changes } = Astro.props;
+const authors = new Map<string, AuthorType>();
+for(const change of changes) {
+	if(!authors.has(change.author.id)) {
+		const author = await getEntry(change.author.collection, change.author.id);
+		authors.set(change.author.id, author.data);
+	}
+}
+const tocPaddings = [undefined, "pl-0", "pl-4", "pl-8", "pl-10", "pl-12", "pl-14"];
+const linkStyle = "no-underline block text-c2 ml-8 hover:text-c1";
+const detailsStyle = "pl-2 ml-6 open:text-c1 my-3";
+
+function constructSidebar(sidebar: SidebarEntry[]): string {
+	return sidebar
+		.map((entry) => {
+			if ("link" in entry) {
+				return `<a class="${linkStyle}" href=${entry.link}>${entry.label}</a>`;
+			} else if ("items" in entry) {
+				return `
+				<details class="${detailsStyle}" open=${!entry.collapsed}>
+					<summary class="hover:text-c1">${entry.label}</summary>
+					<div>${constructSidebar(entry.items)}</div>
+				</details>`;
+			}
+		})
+		.join("");
+}
+---
+
+<L {title} {description}>
+	<div class="columns">
+		<nav id="sidebar" class="sidebar">
+			<div class="sidebarPullMark"></div>
+			<div class="sidebarContent scrollbar" set:html={constructSidebar(sidebar)}/>
+		</nav>
+		<main class="content scrollbar md pb-10">
+			<slot />
+			<hr/>
+			<h2 id="change-log">Change log</h2>
+			<div class="mx-4">
+				{
+					changes.map(x => (
+						<div>[{new Date(x.date).toLocaleDateString()}] {authors.get(x.author.id)?.["display-name"]}: {x.comment}</div>
+					))
+				}
+			</div>
+		</main>
+		<aside class="toc scrollbar">
+			{headings.length > 0 && <h3 class="mx-0 text-c1-accent">Contents</h3>}
+			{
+				headings.filter(x => x.depth < 5).map((x) => (
+					<a
+						class={`block ${tocPaddings[x.depth]} text-c2 hover:text-c1`}
+						href={"#" + x.slug}
+					>
+						{x.text}
+					</a>
+				))
+			}
+			<a class="mx-0 text-c3 hover:text-c1" href="#change-log">Change log</h3>
+		</aside>
+	</div>
+</L>
+
+<style>
+	.sidebar {
+		@apply fixed top-0 bottom-0 z-10 bg-c2-fill motion-reduce:transition-none -translate-x-full max-w-[80%];
+	}
+	.sidebar.open {
+		@apply border-r border-c3-accent translate-x-0 transition-all;
+	}
+	.sidebarContent {
+		@apply p-4 text-c3 no-underline overflow-auto h-full;
+	}
+	.sidebarPullMark {
+		@apply top-20 block absolute left-full p-2 bg-c2-fill z-10 border-t border-r border-b border-c3;
+	}
+	.columns {
+		@apply relative flex h-full flex-col-reverse scroll-pt-2;
+	}
+	.content {
+		@apply relative grow shrink px-12 scroll-pt-2 basis-0;
+	}
+	.toc {
+		@apply shrink-[0.5] px-12 pt-12 text-c1;
+	}
+	.scrollbar {
+		scrollbar-width: 4px;
+		scrollbar-color: hsl(var(--tertiary)) hsl(var(--tertiary-fill));
+	}
+	.scrollbar::-webkit-scrollbar {
+		@apply w-3 m-1;
+	}
+	.scrollbar::-webkit-scrollbar-thumb {
+		@apply bg-c3;
+	}
+	.scrollbar::-webkit-scrollbar-track {
+		@apply bg-c3-accent;
+	}
+
+	@media screen(md) {
+		.sidebar {
+			@apply static shrink-[0.5] bg-inherit shadow-none transform-none;
+		}
+		.sidebarPullMark {
+			@apply hidden;
+		}
+		.sidebarContent {
+			@apply pt-12;
+		}
+		.columns {
+			@apply flex-row overflow-hidden;
+		}
+		.content {
+			@apply overflow-auto;
+		}
+		.toc {
+			@apply px-6 overflow-auto;
+		}
+	}
+</style>
+<style is:global>
+	details { @apply text-c3 border-l border-c3 pl-2 }
+	summary { @apply cursor-pointer relative }
+	summary::before { @apply content-[''] border-c3 absolute top-0 bottom-0 -left-8 w-2 h-2 my-auto border-b border-r -rotate-45 transition-transform duration-200 }
+	details[open] summary::before { @apply rotate-45 }
+	summary::marker { @apply content-none }
+</style>
+
+<script>
+const sidebar = document.getElementById("sidebar");
+document.querySelector(".sidebarPullMark")?.addEventListener("click", () => sidebar?.classList.toggle("open"));
+</script>

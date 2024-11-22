@@ -1,0 +1,67 @@
+---
+// Adjusted example from https://github.com/johnzanussi/astro-mdx-code-blocks
+import { Code } from "astro:components";
+import { Button } from "@/components";
+import Icon from "@/components/Icon.astro";
+
+const { code, lang, filename } = Astro.props;
+const hasLang = !!lang;
+const hasFileName = !!filename;
+const showHeader = hasLang || hasFileName;
+---
+
+<div>
+	{
+		showHeader && (
+			<div class="bg-c3-fill relative p-1">
+				{hasLang && <span class="px-1 py-0.5 m-0.5 text-xs text-c3">{lang}</span>}
+				{hasFileName && <span class="italic font-mono">{filename}</span>}
+			</div>
+		)
+	}
+	<div class="relative">
+		<Code code={code} lang={lang || "plaintext"} class="codeBlock"/>
+		<Button size="icon" variant="outline" class="copyCode">
+			<Icon variant={"copy"} class="copyIcon"/>
+			<Icon variant={"check"} class="checkIcon"/>
+		</Button>
+	</div>
+</div>
+
+<style>
+	.copyCode {
+		@apply absolute top-2 right-2;
+	}
+	.codeBlock {
+		@apply w-full overflow-auto pr-14 min-h-14;
+	}
+	.copyIcon {
+		@apply absolute pointer-events-none inset-0;
+	}
+	.checkIcon {
+		@apply text-green-500 absolute opacity-0 pointer-events-none inset-0;
+	}
+	button.copied > .copyIcon {
+		@apply animate-ping repeat-1 fill-mode-forwards duration-500;
+	}
+	button.copied > .checkIcon {
+		@apply transition-opacity duration-500 opacity-100;
+	}
+</style>
+
+<script>
+	const buttons = document.querySelectorAll("button.copyCode");
+
+	buttons.forEach((button) => {
+		button.addEventListener("click", async (e) => {
+			const target = e.target as HTMLButtonElement;
+			const codeBlock = target.parentElement?.querySelector(".codeBlock");
+			if (codeBlock) {
+				const code = (codeBlock as HTMLDivElement).innerText;
+				await navigator.clipboard.writeText(code);
+				target.classList.add("copied");
+				setTimeout(() => target.classList.remove("copied"), 2000);
+			}
+		});
+	});
+</script>

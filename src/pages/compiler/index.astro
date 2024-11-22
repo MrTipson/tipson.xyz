@@ -1,0 +1,15 @@
+---
+import Markdown from "@/layout/markdown.astro";
+import { sidebar } from "@/content/compiler/directory";
+import { getEntry } from "astro:content";
+
+const entry = await getEntry("compiler", "intro");
+if (entry === undefined) {
+	return Astro.redirect("/404");
+}
+const { Content, headings } = await entry.render();
+---
+
+<Markdown {sidebar} {...entry.data} {headings}>
+	<Content />
+</Markdown>

@@ -1,0 +1,58 @@
+---
+title: 'Language definition: p0'
+description: >-
+  Defining a simple programming language
+draft: false
+changes:
+  - date: 2024-11-22
+    author: '1'
+    comment: Initial post
+---
+
+# p0 language definition
+Variables a-z (.data segment) of size 1 word.
+
+## Statements
+ - *stmt* -> *\<var>* = *expr*
+ - *expr* -> *\<var>* *expr* | *\<const>* *expr* | *op* *expr* | ε
+ - *op* -> + | - | \* | / | % | > | => | \< | =\< | == | =! | & | |
+
+
+## I/O
+ - :getchar(*var*)
+ - :putchar(*var*)
+ - :uchar(*var*) - putchar for stderr
+ - :raw(*constant string*)
+ - :throw(*constant string*) - raw for stderr
+
+*var* is destination/source, always read stdin and write stdout.
+raw is utility function that prints out a string constant.
+
+## Execution flow
+ - :if(*expr*)\{} else\{}
+ - :while(*expr*)\{}
+
+## Exit
+ - :exit(*expr*)
+
+## Memory
+Load or store value into/from 1st arg, at index in memory array determined by 2nd arg. 
+Load needs a variable as 1st argument (destination).
+ - :load(*var*,*expr*)
+ - :store(*expr*,*expr*)
+
+## Functions
+Definition
+ - :fun(*name*)\{}
+
+Call
+ - :call(*name*)
+
+# Extra
+## Parsing
+: is at the beginning of all special functions, after which only the first character is checked (:call and :c behave the same).
+
+## Syntax weirdness
+Don't add extra spaces/characters inside keyword calls. Don't write an empty if block and an else in the same line. 
+Closing brace and else must also be in the same line. If in doubt, check how its done in 
+[prev.p0](https://github.com/MrTipson/compiler/blob/master/src/prev.p0). The syntax is not very robust, and that was kind of the point.

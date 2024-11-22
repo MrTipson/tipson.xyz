@@ -1,0 +1,571 @@
+---
+title: 'Bootstrapped compiler: Stage 1'
+description: >-
+  Writing a compiler for a C-like language in a simple programming language
+draft: false
+changes:
+  - date: 2024-11-21
+    author: '1'
+    comment: Initial post
+---
+
+# Stage 1 compiler
+The goal with the *p1* language was to create a simple statically typed language, which would contain the core constructs we have been accustomed to in programming:
+- local, global variables
+- function parameters and return values
+- types and type checking
+- custom data types (structs)
+- complex expressions with priority
+- multi file 'support'
+- (syscalls)
+
+Of course, it is the compiler's job to implement these, which will be done in multiple passes:
+- lexical analysis (tokenization)
+- syntax analysis
+- semantic analysis (type checking)
+- memory
+- code generation
+
+Before the lexical analysis actually starts, the compiler first reads the input program from **stdin** into memory.
+
+---
+
+## Lexical analysis
+
+The purpose of lexical analysis is to break up the input program into tokens (groups of characters with attached meaning), for example:
+- keywords (int, bool, void, if, while, ...)
+- identifiers (variable, parameter names)
+- constants (5, 'a', "test")
+- symbols ( *(* , *)* , ... , operators)
+- comments/whitespace (which are skipped)
+
+Another purpose is to catch some early errors (malformed string/character constants, invalid escape sequences).
+
+For a list of all possible tokens and how their memory entries look like, check out the [docs](https://github.com/MrTipson/compiler/blob/master/docs/tokenization.md).
+
+### Implementation snippet
+
+Lets look at an example (from the actual implementation) of how a token is parsed:
+
+<figure>
+```py
+// src/tokenize.p0
+:fun(tokenize_isKeyword){
+	# Preload 3 characters in p,q,r
+	:load(p,i)
+	:load(q,i 1 +)
+	:load(r,i 2 +)
+	x = r # 3rd character should be non-identifier
+	:call(tokenize_isKeyword_helper) # y contains result
+	:if(p 105 == q 102 == & y &){ # if_
+		:store(11,m) # type 11
+		i = i 2 + # consume 2 characters
+		f = 0 # match found
+		:if(d){
+			:raw("IF ")
+		}
+	} else {
+		# keywords of length >= 3
+	}
+	:if(f 0 == ){
+		:store(l,m 3 +)
+		m = m 4 +
+	}
+}
+```
+</figure>
+> `tokenize_isKeyword_helper` returns `1` in `y` if the character in `x` is not a legal character in identifiers. That 
+> means that we are indeed looking at a keyword, and not a variable name for example.
+
+We can notice that this is quite cumbersome due to:
+- there is no simple way of comparing strings
+- there is no way to loop through the strings, which means that every keyword/symbol has its own if statement somewhere
+
+### Example
+
+We can observe the debug output of how the *hello world* program gets tokenized.
+
+<figure>
+```c
+// test/src/helloworld.p1
+int write(int fd, char* cbuf, int count);
+
+void main(){
+	write(1,"Hello world!\n",13);
+}
+```
+</figure>
+
+
+`INT IDENT(write) LPARENT INT IDENT(fd) COMMA CHAR MUL IDENT(cbuf) COMMA INT IDENT(count) RPARENT SEMICOLON VOID IDENT(main) LPARENT RPARENT LCURLY IDENT(write) LPARENT CINT(1) COMMA CSTRING("Hello world!\n") COMMA CINT(13) RPARENT SEMICOLON RCURLY`
+
+
+### Token variants
+As the compiler is going over the source program, recognised tokens are stored to memory in a uniform way (4 components each):
+<figure>
+Token | Type | ID | Optional | Line 
+----- | ---- | -- | -------- | ----
+int | 0 | 0 | - | Line no.
+char | 0 | 1 | - | Line no.
+bool | 0 | 2 | - | Line no.
+void | 0 | 3 | - | Line no.
+if | 11 | - | - | Line no.
+else | 12 | - | - | Line no.
+while | 13 | - | - | Line no.
+return | 27 | - | - | Line no.
+struct | 45 | - | - | Line no.
+sizeof | 47 | - | - | Line no.
+*identifier* | 2 | start | length | Line no.
+constant(int) | 3 | 0 | value | Line no.
+constant(char) | 3 | 1 | value | Line no.
+constant(boolean) | 3 | 2 | value | Line no.
+constant(string) | 3 | 3 | start | Line no.
+null | 3 | 4 | 0 | Line no.
+( | 14 | - | - | Line no.
+) | 15 | - | - | Line no.
+\{ | 16 | - | - | Line no.
+} | 17 | - | - | Line no.
+[ | 18 | - | - | Line no.
+] | 19 | - | - | Line no.
+. | 20 | - | - | Line no.
+, | 21 | - | - | Line no.
+; | 22 | - | - | Line no.
+: | 23 | - | - | Line no.
+! | 24 | - | - | Line no.
+= | 1 | 0 | - | Line no.
++= | 1 | 1 | - | Line no.
+-= | 1 | 2 | - | Line no.
+/= | 1 | 3 | - | Line no.
+*= | 1 | 4 | - | Line no.
+++ | 25 | - | - | Line no.
+-- | 26 | - | - | Line no.
+& | 28 | - | - | Line no.
+\| | 29 | - | - | Line no.
+== | 30 | - | - | Line no.
+!= | 31 | - | - | Line no.
+\< | 32 | - | - | Line no.
+\> | 33 | - | - | Line no.
+\<= | 34 | - | - | Line no.
+\>= | 35 | - | - | Line no.
+\* | 36 | - | - | Line no.
+/ | 37 | - | - | Line no.
+% | 38 | - | - | Line no.
+\+ | 39 | - | - | Line no.
+\- | 40 | - | - | Line no.
+&& | 41 | - | - | Line no.
+\|\| | 42 | - | -  | Line no.
+~ | 43 | - | - | Line no.
+^ | 44 | - | - | Line no.
+-> | 46 | - | - | Line no.
+</figure>
+
+---
+
+## Syntax analysis
+
+The purpose of syntax analysis is to group up tokens into higher level constructs, such as:
+- declaration
+- type (chain)
+- expression (tree)
+- statements
+- ...
+
+Doing this allows us to strip away keywords and other extra tokens, resulting in only semantically important constructs.
+
+### Implementation snippet
+
+Lets take a look at an example (from the actual implementation) of how tokens are grouped into a larger construct:
+<figure>
+```py
+// src/syntax.p0
+:fun(syntax_isDeclaration){
+	:call(syntax_isType)
+	:load(x,i)
+	l = i # save identifier location
+	:if(f 0 == x 2 == &){ # <type> <ident>
+		i = i 4 +
+		:load(x,i)
+		:if(x 22 ==){ # x = ';' ; <type> <ident>;
+			:store(0,m) # declaration
+			:store(m 5 -,m 1 +) # type was written in previous cell
+			:store(0 1 -,m 2 +) # no expression
+			:store(l,m 3 +) # identifier
+			:store(0 1 -,m 4 +)
+			m = m 5 +
+			i = i 4 +
+			f = 0 # set match flag
+			:if(d){
+				:raw("DECL ")
+			}
+		} else {
+			:load(z,i 1 +) # load id
+			:if(x 1 == z 0 == &){ # x == assignment & z == '=' ; <type> <ident> = 
+				i = i 4 +
+				n = m 5 - # save type location
+				f = 1
+				:call(syntax_isExpression)
+				:load(x,i)
+				:if(f 0 == x 22 == &){ # expr matched & x == ';' ; type ident = expr ;
+					i = i 4 +
+					:store(0,m)
+					:store(n,m 1 +) # type location was saved in n
+					:store(m 5 -,m 2 +) # expression in previous cell
+					:store(l,m 3 +)
+					:store(0 1 -,m 4 +)
+					m = m 5 +
+					:if(d){
+						:raw("INIT ")
+					}
+				} else {
+					f = 1 # no match
+				}
+			} else {
+				f = 1 # no match
+			}
+		}
+	} else {
+		f = 1 # no match
+	}
+}
+```
+</figure>
+The example I chose is not the simplest, but its also far from the most complicated one. It handles variable declarations, which can be either `type name;` or `type name = expression;`. Lets break it down:
+- `syntax_isType` is invoked. If a type was found, it will have been written in the previous memory entry (each entry = 5 cells), `f` would be set to 0, and the token index **i** would be moved up.
+- the next token is loaded.
+- if a type was matched, and is followed up by an identifier, we might be looking at a declaration, so we move the token index further.
+- If there is no initializer expression (i.e. we are looking at `;`), move up the token index and store the necessary cells in memory.
+- if not, we confirm its an initialization, and continue to parse the initializer expression. The variable type is saved to `n` so it doesn't get trashed.
+- if an expression was matched and followed by `;`, the initialization is written into memory.
+
+### Example
+
+Again we can take a look at the *hello world* example.
+
+```c
+// test/src/helloworld.p1
+int write(int fd, char* cbuf, int count);
+
+void main(){
+	write(1,"Hello world!\n",13);
+}
+```
+
+```
+PAR PAR PAR FUNDECL const const const call const const const call EXP FUN
+
+Expressions:
+	EXP[ CALL(write)[ 1, "Hello world!\n", 13,  ] ] 
+Types:
+	FUN [ int ] PAR [ int ] PAR [ ptr(char) ] PAR [ int ] FUN [ void ] 
+```
+
+Lets take a look at the first line, which contains debug logs during parsing:
+- `PAR PAR PAR FUNDECL` is correctly identified as a function declaration
+- but then `const const const call` repeats twice, even though there is only one function call in the program. This is because the compiler first tries to match an assignment (`expr = expr` or one of the other assignment operators), fails, and tries again later with an expression statement (`expr;`), which is successful.
+- at the end `FUN` is output, because it was a normal function definition.
+
+The post parsing printout is more consise, but might not always be present, if the compiler exits with some error beforehand.
+
+### Memory structure
+#### Syntax nodes
+Similarly to tokens, syntax nodes are also stored in memory, this time with 5 components each. For the rest of the 
+compilation, the compiler will be working with these nodes in one way or another.
+<figure>
+Type\Offset | 0 | 1 | 2 | 3 | 4
+----------- | - | - | - | - | -
+Declaration | 0 | type | expression (-1 if none) | ident | -
+Type | 1 | 0int, 1char, 2bool, 3void, 4arr, 5ptr, 6name | basetype | const token (array only) | -
+Expression | 2 | id | expr1 | expr2 | type(added later)
+Function | 3 | type | ident | 0start, 1end, 2startdecl | -
+Parameter | 4 | type | ident | - | -
+Return | 5 | expr (-1 if none) | - | - | -
+Expression statement | 6 | expr | - | - | -
+Assignment | 7 | 0=, 1+=, 2-=, 3/=,4*= | expr1 | expr2 | -
+If/Else | 8 | 0if, 1else, 2end | expr(if) | - | -
+While | 9 | 0start, 1end | expr(start only) | - | -
+Call | 10 | 0start, 1end | ident(start only) | start(end only) | -
+Argument | 11 | expr | - | - | -
+Struct | 12 | 0start, 1end | ident | -1 | -
+</figure>
+> Note: Cast expression: type is expr2
+
+> Note: Declaration address is added as expr2 to ident expressions during name resolution (phase 3).
+
+
+#### Expression types
+The expression node covers many operations, which are discerned by their id:
+<figure>
+Operator | Id
+-------- | --
+Postf ++ | 0
+Postf -- | 1
+Postf arr| 24
+Post comp| 25
+Post ptr comp | 31
+Pref  ++ | 2
+Pref  -- | 3
+Pref  +  | 4
+Pref  -  | 5
+Pref  !  | 6
+Pref  ~  | 27
+Pref  &  | 28
+Pref  *  | 29
+Pref cast| 30
+Binop *  | 7
+Binop /  | 8
+Binop %  | 9
+Binop +  | 10
+Binop -  | 11
+Binop \<  | 12
+Binop >  | 13
+Binop \<= | 14
+Binop >= | 15
+Binop == | 16
+Binop != | 17
+Binop &  | 18
+Binop \| | 19
+Binop && | 20
+Binop \|\| | 21
+Binop ^  | 26
+ident    | 22
+const    | 23
+sizeof	 | 32
+</figure>
+
+#### Expression grammar
+Expressions are parsed using the following LL(1) grammar, which enables a fairly trivial implementation with a recursive 
+descent parser:
+<figure>
+a | b
+--|--
+E -> FE' | E'-> \|\| FE' \| ε
+F -> GF' | F' ->  && GF' \| ε
+G -> XG' | G' -> \| XG' \| ε
+X -> HX' | X' -> ^ HX' \| ε
+H -> IH' | H' -> & IH' \| ε
+I -> JI' | I' -> == JI' \| != JI' \| ε
+J -> KJ' | J' -> < KJ' \| > KJ' \| \<= KJ' \| >= KJ' \| ε
+K -> LK' | K' -> + LK' \| - LK' \| ε
+L -> ML' | L' -> * ML' \| / ML' \| % ML' \| ε
+M -> ++M \| --M \| +M \| -M \| !M \| &M \| \*M \| ~M \| (type)M \| N
+N -> ON' | N' -> ++N' \| --N' \| [E]N' \| .identN' \| ->identN' \| ε
+O -> ident \| const \| (E)
+</figure>
+
+---
+
+## Semantic analysis
+
+The purpose of semantic analysis is to:
+- resolve names (check if used variable has been declared and is in scope)
+- check types (in expressions, returns, ...)
+- check Lvalues (determine whether expression has an address)
+
+### Name resolver
+During name resolving, declarations (and their depth/scope) are collected and written temporarily into memory. When a scope is closed, the contained declarations are removed (similar to a stack). This includes:
+- function declarations
+- type declarations (structs)
+- variable / parameter declarations
+
+Name resolving is done in 2 passes; the first one only handles global declaration, while the second one goes through the entire program.
+
+When a named type / expression / call is encountered, the memory entries are checked for a matching identifier. If successful, the address of the declaration is added to the memory entry for the expression (at offset 3), named type (at offset 2) or call (at offset 2).
+
+#### Memory structure
+During execution of the name resolver, the memory is used in a stack-like fashion to store currently active declarations.
+
+<figure>
+Type\Offset | 0 | 1
+----------- | - | -
+Any declaration | address | depth
+</figure>
+
+
+#### Implementation snippet
+We can take a look at an example of how new declaration entries are added:
+<figure>
+```py
+// src/semantics.p0
+:fun(semantics_nameResolver_handleDeclaration){
+	:if(x 0 ==){ # declaration
+		:load(x,i 3 +) # offset 3 = identifier
+		p = x # copy to p, x is an argument and might get changed
+		:call(semantics_nameResolver_getDeclaration)
+        # returned: declaration address in y, scope depth in q
+		:if(y 0 1 - =! q t == &){ # found declaration on same level
+			:throw("Name ")
+			x = p
+			:call(errorIdent)
+			:throw(" already declared. ")
+			:load(x,p 3 +)
+			:call(errorPrintLine)
+		}
+		:store(i,m) # declaration
+		m = m 1 +
+		:store(t,m) # level
+		m = m 1 +
+	} else {
+        # ... other declarations
+	}
+}
+```
+</figure>
+
+We can also check out how names are resolved (in this case, named expression):
+<figure>
+```py
+// src/semantics.p0
+:fun(semantics_nameResolver_resolveNames){
+	:load(u,i 1 +)
+	:if(x 2 == u 22 == &){ # ident expression
+		:load(x,i 2 +) # ident
+		p = x # copy to p, x is an argument and might get changed
+		:call(semantics_nameResolver_getDeclaration)
+		:if(r 0 1 - ==){ # no declaration was found
+			:throw("Undeclared name ")
+			x = p
+			:call(errorIdent)
+			:throw(". ")
+			:load(x,p 3 +)
+			:call(errorPrintLine)
+		}
+		:store(r,i 3 +) # declaration is in place of expr2
+	} else {
+		# ... other uses
+	}
+}
+```
+</figure>
+
+For good measure, lets check out the `getDeclaration` method as well.
+
+<figure>
+```py
+// src/semantics.p0
+:fun(semantics_nameResolver_getDeclaration){
+	j = m 2 - # j points at the last declaration added (each declaration = 2 slots)
+	r = 0 1 - # initialize
+	q = 0 1 - # initialize
+	z = x # save search ident
+	:while(j g => r 0 1 - == &){ # name resolver entries start at g
+		:load(u,j) # load declaration address
+		:load(v,u) # load declaration type
+		:if(v 0 ==){ # variable
+			:load(y,u 3 +) # load identifier address
+			x = z
+			:call(identEquals) # function compares identifiers in x and y
+			:if(y){
+				r = u # declaration address
+				:load(q,j 1 +) # declaration scope depth
+			}
+		} elif(v 3 == v 4 == |){ # function, parameter
+			:load(y,u 2 +) # load identifier address
+			x = z
+			:call(identEquals) # function compares identifiers in x and y
+			:if(y){
+				r = u # declaration address
+				:load(q,j 1 +) # declaration scope depth
+			}
+		}
+		j = j 2 - # decrement loop index
+	}
+	y = r # set return value
+}
+```
+</figure>
+
+
+### Type resolver
+During type resolving, type constraints are checked, such as:
+- operand types must be compatible with the operator
+- expression in if/while must be a boolean
+- argument types in calls must match
+- non void functions must have return statement (and its type must match)
+
+The type resolving code is quite long and contains many edge case checking, so we'll only take a look at a simple example:
+
+#### Address resolving
+During type resolving, expressions are also checked for addresses. Lvalues (variables, parameters) are recognised, and 
+enforced in their uses (pointer dereference, array access, component access, assignment(left), increment/decrement, pointer &).
+
+<figure>
+```py
+// src/semantics.p0
+	:load(u,x 1 +) # expression operator
+	:if(u 0 => u 3 =< &){ # postincrement, postdecrement, preincrement, predecrement
+		:load(x,x 2 +) # subexpression 1
+		:call(semantics_typeResolver_resolveExpression) # the address of the resolved type is in previous memory slot
+		:if(h 0 ==){ # h carries the Lvalue flag
+			:throw("[increment/decrement] Expression must be an Lvalue. ")
+			x = l
+			:call(errorPrintLine)
+		}
+		h = 0 # reset Lvalue flag
+		:load(x,m 1 -) # load address of resolved type
+		:load(x,x 1 +) # load type type
+		# x != int & x != char & x != ptr
+		:if(x 0 =! x 1 =! & x 5 =! &){
+			:throw("[increment/decrement] Expression must be of type int, char or pointer. ")
+			x = l
+			:call(errorPrintLine)
+		}
+	}
+```
+</figure>
+
+---
+
+## Memory
+This phase handles:
+- collecting global variables
+- assigning ids to strings
+- determining sizes of types
+- calculating offsets for function parameters
+- calculating offsets for struct components
+- calculating offsets for local variables
+- calculating size of activation record (parameters + local variables + return address + frame pointer)
+
+### Activation record
+```
+|previous f.| <- FP
+|parameter 0|
+|    ...    |
+|parameter n|
+|local var.0|
+|    ...    |
+|local var.n|
+|   old fp  |
+|return addr| <- SP
+```
+> local variables can be of any size (1-4 bytes) and will not take up uniform space in the activation record
+
+
+### Type sizes
+- **char**, **bool** and **void** take up *1 byte*
+- **int** and **ptr** take up *4 bytes*
+- **arrays** take up *(length \* base type size) bytes*
+- **structs** are as big as the sum of their components
+
+Void taking up 1 byte is intentional, in order to allow incrementing **void\*** (adding/subtracting ints from pointers moves the pointer by the size of its basetype, which would be 1 byte in this case).
+
+---
+
+## Codegen
+We'll take a look at only some of the more interesting aspects of the implementation, such as:
+- expressions/calls
+- multi file support
+
+The implemented code generation contains just the basics, with no optimizations and such.
+
+### Expressions / Calls
+Expression generation was designed in such a way, that register allocation was not necessary, which allows us to go directly from the memory phase into code generation. It can be described with a couple of rules:
+- results of expressions (and calls) are left in **r0**
+- if an operator needs to evaluate multiple expressions, it calculates the first one, stores the result on the stack, calculates the other one, and combines the results.
+- function arguments are pushed to the stack as soon as they are calculated
+- function return values are also left in **r0**
+
+### Multi file support
+
+The compiler/language does not implement the concept of *header files* (or equivalent), but the source code can still be in multiple files. Function declarations must still be present, and the appropriate implementation must be provided during the linking process.
+
+In order to compile a file that 'exports' some functions, it must not contain a main method, so an entry point will not be generated.

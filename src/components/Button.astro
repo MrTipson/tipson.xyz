@@ -1,0 +1,22 @@
+---
+const variants = {
+	"default": "",
+	"outline": "border border-c3 text-c2 hover:text-c1 hover:border-c2 rounded",
+	"ghost": "text-c2 hover:text-c1",
+}
+const sizes = {
+	"default": "",
+	"icon": "h-8 w-8",
+}
+
+interface Props {
+	variant?: keyof typeof variants
+	size?: keyof typeof sizes
+	class?: string
+}
+const { variant="default", size="default", class: className="", ...rest } = Astro.props;
+---
+
+<button class={[variants[variant], sizes[size], className].join(" ")} {...rest}>
+	<slot/>
+</button>
