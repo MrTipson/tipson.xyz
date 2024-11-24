@@ -19,9 +19,8 @@ export default defineConfig({
 		MDXCodeBlocks(),
 		mdx()
 	],
-	output: 'server',
+	output: 'static',
 	markdown: {
 		syntaxHighlight: false
-	},
-	adapter: cloudflare({ imageService: "cloudflare" })
+	}
 });

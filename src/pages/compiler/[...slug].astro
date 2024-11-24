@@ -1,0 +1,24 @@
+---
+import Markdown from "@/layout/markdown.astro";
+import { sidebar } from "@/content/compiler/directory";
+import { getCollection, type CollectionEntry } from "astro:content";
+
+export async function getStaticPaths() {
+	return (await getCollection("compiler"))
+		.filter((entry) => !import.meta.env.PROD || !entry.data.draft)
+		.map((entry) => ({
+			params: { slug: entry.slug },
+			props: { entry },
+		}));
+}
+
+interface Props {
+	entry: CollectionEntry<"compiler">;
+}
+const { entry } = Astro.props;
+const { Content, headings } = await entry.render();
+---
+
+<Markdown {sidebar} {...entry.data} {headings}>
+	<Content />
+</Markdown>
