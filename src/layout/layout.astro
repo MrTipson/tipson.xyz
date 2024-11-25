@@ -26,12 +26,12 @@ import Config from "astro.config.mjs";
 				<a href="/" class="text-3xl font-extrabold text-c1 font-mono">tipson.xyz</a>
 			</div>
 			<div class="flex gap-1">
-				<Button variant="ghost" size="icon">
+				<Button variant="ghost" size="icon" class="relative">
 					<a href="https://github.com/MrTipson/">
 						<Icon variant="github" />
 					</a>
 				</Button>
-				<Button variant="ghost" size="icon">
+				<Button variant="ghost" size="icon" class="relative">
 					<a href="https://steamcommunity.com/id/MrTipson/">
 						<Icon variant="steam" />
 					</a>
@@ -46,13 +46,14 @@ import Config from "astro.config.mjs";
 </html>
 
 <style>
-	header button:hover::after {
-		display: block;
+	header button:hover::before {
+		top: -8px;
+		position: absolute;
+		left: 0;
+		right: 0;
 		margin: auto;
 		content: '';
-		height: 12px;
 		width: 0px;
-		transform: rotate(180deg);
 		border-color: currentColor transparent;
 		border-style: solid;
 		border-width: 6px 6px 0px 6px;
