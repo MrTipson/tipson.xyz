@@ -1,0 +1,375 @@
+:root{
+    --bg-primary: #393939;
+    --modifier-darken: #00000050;
+    --modifier-lighten: #ffffff50;
+    --toolbar-shadow: drop-shadow(0 0 2px white);
+    --window-outer: #494949;
+    --window-inner: #2c2c2c;
+    --window-shadow: 0 0 2px black;
+    --explorer-item-size: 100px;
+    --explorer-icon-size: 48px;
+    --resize-width: 4px;
+    --text: white;
+    font-family: 'VT323', monospace;
+    color: white;
+}
+body{
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+div{
+    cursor:default;
+}
+/* Toolbar */
+.toolbar{
+    z-index: 1;
+    position: fixed;
+    width: 100%;
+    height: 1.5em;
+
+    background-color: var(--bg-primary);
+    font-size: 1em;
+
+    display: flex;
+    align-items: center;
+}
+.toolbar-item{
+    margin-left: .3em;
+    margin-right: .3em;
+}
+#toolbar-bottom{
+    bottom: 0;
+    justify-content: space-between;
+    z-index: 3;
+
+    height: 1.3em;
+    font-size: .9em;
+}
+#toolbar-top{
+    filter: var(--toolbar-shadow);
+}
+#tabs{
+    display: flex;
+}
+#tabs > div{
+    background-color: var(--modifier-lighten);
+    font-size: .9em;
+    padding: 0 .7em;
+    margin-right: .5em;
+}
+.klima{
+    background-color: var(--modifier-darken) !important;
+}
+.logo{
+    height: .9em;
+}
+/* Desktop */
+.desktop{
+    width: 100%;
+    height: 100%;
+    /*background-color: black;*/
+}
+.wrap{
+    overflow: hidden;
+    position: relative;
+	height: 100%;
+}
+.shortcut{
+    height: 64px;
+    width: 64px;
+
+    font-size: .9em;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.shortcut > img{
+    width: 48px;
+    height: 48px;
+}
+.shortcut > *{
+    pointer-events: none;
+}
+/* Window */
+.draggable{
+    position: absolute;
+}
+.window{
+    z-index: 2;
+    position: fixed;
+    background-color: var(--window-outer);
+
+    box-shadow: var(--window-shadow);
+
+    max-width: 100vw;
+    max-height: 100vh;
+
+    width: 80%;
+    height: 80%;
+    top: 100px;
+    left: 100px;
+}
+.window-content{
+    position: absolute;
+    background-color: var(--window-inner);
+    top: 1em;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    padding: 5px;
+}
+.window-focused{
+    z-index: 3;
+}
+.window-closing{
+    animation: window-close .3s linear 0s forwards;
+}
+.window-closing *{
+    overflow: hidden !important;
+}
+.window-docking{
+    animation-name: window-dock;
+    animation-duration: .3s;
+    animation-direction: alternate;
+    animation-fill-mode: both;
+    animation-iteration-count: 2;
+}
+.buttons{
+    pointer-events: initial;
+    display: flex;
+    font-size: 1.5em;
+    line-height: .5em;
+}
+.buttons > *{
+    padding: 0 .1em;
+}
+.window-bar{
+    margin: 0 .4em;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+}
+.window-bar .title{
+    font-size: .8em;
+    line-height: 1.2em;
+}
+/* https://codepen.io/kizu/pen/NPrbEQ */
+.text-overflow{
+    float: right;
+}
+.text-overflow-wrapper{
+    overflow: hidden;
+}
+.window-resize[data-side="top"]{
+    height: var(--resize-width);
+    position: absolute;
+    right: 5px;
+    left: 5px;
+    top:0px;
+    cursor: ns-resize;
+}
+.window-resize[data-side="bottom"]{
+    height: var(--resize-width);
+    position: absolute;
+    right: 5px;
+    left: 5px;
+    bottom:0px;
+    cursor: ns-resize;
+}
+.window-resize[data-side="left"]{
+    width: var(--resize-width);
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left:0px;
+    cursor: ew-resize;
+}
+.window-resize[data-side="right"]{
+    width: var(--resize-width);
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    right:0px;
+    cursor: ew-resize;
+}
+.window-resize[data-side="topleft"]{
+    height: 5px;
+    width:5px;
+    position: absolute;
+    left: 0;
+    top:0px;
+    cursor: nwse-resize;
+}
+.window-resize[data-side="topright"]{
+    height: 5px;
+    width:5px;
+    position: absolute;
+    right: 0;
+    top:0px;
+    cursor: nesw-resize;
+}
+.window-resize[data-side="bottomleft"]{
+    height: 5px;
+    width:5px;
+    position: absolute;
+    left: 0;
+    bottom:0px;
+    cursor: nesw-resize;
+}
+.window-resize[data-side="bottomright"]{
+    height: 5px;
+    width:5px;
+    position: absolute;
+    right: 0;
+    bottom:0px;
+    cursor: nwse-resize;
+}
+.opacity-hidden{
+    opacity: 0;
+    transition: all .5s linear;
+    display: none;
+}
+.opacity-visible{
+    opacity: 1;
+}
+/* Type: list */
+.type-list{
+    display: flex;
+    height: 100%;
+}
+.type-list img{
+    width: 40%;
+    float: right;
+}
+.type-list > ul{
+    width: 30%;
+    overflow-y: auto;
+}
+.type-list > div{
+    width: 70%;
+    overflow-y: auto;
+}
+.type-list h2{
+    margin-bottom: 0;
+}
+.type-explorer{
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+.type-explorer .folder,
+.type-explorer .file{
+    height: var(--explorer-item-size);
+    width: var(--explorer-item-size);
+
+    color: var(--text);
+    text-decoration: none;
+    margin: .2em .7em;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.type-explorer .folder:active,
+.type-explorer .file:active{
+    overflow: visible;
+}
+.type-explorer .folder:active > .filename,
+.type-explorer .file:active > .filename{
+    background-color: var(--window-inner);
+    z-index: 1;
+}
+.type-explorer .icon{
+    height: var(--explorer-icon-size);
+    width: var(--explorer-icon-size);
+    background-size: contain;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+}
+.type-explorer .filename{
+    font-size: .7em;
+    word-break: break-all;
+}
+.type-explorer > .directory{
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    width: 100%;
+    bottom: 0;
+    top: 1.4em;
+    padding-top: 1em;
+    position: absolute;
+    overflow: auto;
+}
+.type-explorer > .address-bar{
+    padding: 0.2em 0.1em;
+    display:flex;
+    align-items: center;
+    box-shadow: 0px 1px 2px 0px black;
+}
+.explorer-back{
+    height: 1em;
+    width: 1em;
+
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-image: url(/portal/img/explorer-back.svg);
+    flex-shrink: 0;
+}
+.explorer-path{
+    font-size: .7em;
+    background-color: var(--modifier-darken);
+    margin: 0px .3em;
+    text-overflow: ellipsis;
+}
+.type-explorer .file > .icon{background-image: url(/portal/img/file-types/file.png);}
+.type-explorer .folder > .icon{background-image: url(/portal/img/file-types/folder.png);}
+.file[ext="pdf"] > .icon{background-image: url(/portal/img/file-types/pdf.png);}
+.file[ext="jpg"] > .icon{background-image: url(/portal/img/file-types/jpg.png);}
+.file[ext="png"] > .icon{background-image: url(/portal/img/file-types/png.png);}
+.desktop.flag-dragging iframe,
+.desktop.flag-dragging object /* i hate this */{
+    pointer-events: none;
+}
+.window-content > video,
+.window-content > img,
+.window-content > object{
+    height: -webkit-fill-available;
+    width: -webkit-fill-available;
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+
+    color: white;
+}
+.window-content object {
+    background-color: rgb(148, 33, 62);
+}
+iframe{
+    width: 100%;
+    height: 100%;
+}
+@keyframes window-close{
+    0%{}
+    40%{
+        height: .9em;
+        transform: scaleX(1);
+    }
+    100%{
+        height: .9em;
+        transform: scaleX(0);
+    }
+}
+@keyframes window-dock{
+    from{
+        transform: scale(1) translateY(0px);
+        opacity: 1;
+    }
+    to{
+        opacity: 0;
+        transform: scale(0.5) translateY(100vh);
+    }
+}

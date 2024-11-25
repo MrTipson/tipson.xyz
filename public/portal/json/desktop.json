@@ -1,0 +1,15 @@
+{
+	"shortcuts": [
+		{
+			"name": "Projects",
+			"icon": "/portal/img/desktop-icons/folder.png",
+			"xpos": 20,
+			"ypos": 50,
+			"window": {
+				"title": "Projects",
+				"type": "list",
+				"template-container-id": "project-templates"
+			}
+		}
+	]
+}

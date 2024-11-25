@@ -1,0 +1,77 @@
+---
+import Layout from "@/layout/layout.astro";
+import "@/css/background.css";
+import "@/css/stylesheet.css";
+import "@/styles/markdown.css";
+import { getCollection } from "astro:content";
+
+const projects = await getCollection('projects');
+---
+<Layout title="Portal" description="portal">
+	<div id="project-templates">
+		{projects.map(async entry => {
+			const { Content } = await entry.render();
+			return (
+				<template data-title={entry.data.title}>
+					<div class="px-4 text-c3 -mb-10">
+						{entry.data.github && <div># <a href={entry.data.github}>GitHub</a></div>}
+						<div># {entry.data.technologies}</div>
+					</div>
+					<Content/>
+				</template>
+			);
+		}
+		)}
+	</div>
+	<template id="window-template">
+		<div id="window" class="window draggable">
+			<div class="window-resize" data-side="top"></div>
+			<div class="window-resize" data-side="bottom"></div>
+			<div class="window-resize" data-side="left"></div>
+			<div class="window-resize" data-side="right"></div>
+			<div class="window-resize" data-side="topright"></div>
+			<div class="window-resize" data-side="topleft"></div>
+			<div class="window-resize" data-side="bottomleft"></div>
+			<div class="window-resize" data-side="bottomright"></div>
+			<div class="window-bar">
+				<div class="text-overflow-wrapper">
+					<div id="title" class="text-overflow title">TODO</div>
+				</div>
+				<div id="buttons" class="buttons">
+					<div id="minimise" class="minimise">-</div>
+					<div id="close" class="close">x</div>
+				</div>
+			</div>
+			<div id="content" class="window-content"></div>
+		</div>
+	</template>
+	<template id="tab-template">
+		<div id="docked" class="docked">
+			TODO
+		</div>
+	</template>
+
+	<div class="wrap">
+		<div id="desktop" class="desktop">
+			<div class="wallpaper">
+				<div class="inset-0 bg-gradient-to-br from-blue-900 to-sky-700 absolute"></div>
+				<div class="sun"></div>
+				<div class="stars"></div>
+				<div class="trees"></div>
+				<div class="mountains"></div>
+				<div class="floor">
+					<div class="floor-rotate">
+						<div class="floor-bg">
+							<div class="floor-grid"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="toolbar-bottom" class="toolbar">
+			<div id="tabs" class="toolbar-item"></div>
+			<div id="timer" class="toolbar-item"></div>
+		</div><!-- toolbar -->
+	</div>
+	<script src="src/js/window.js"></script>
+</Layout>

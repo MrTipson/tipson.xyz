@@ -30,5 +30,14 @@ export const collections = {
 	'authors': defineCollection({
 		type: 'data',
 		schema: authorSchema,
-	})
+	}),
+	'projects': defineCollection({
+		type: 'content',
+		schema: z.object({
+			title: z.string(),
+			technologies: z.string(),
+			github: z.string().optional(),
+			image: z.string().optional(),
+		}),
+	}),
 };
