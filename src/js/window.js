@@ -186,6 +186,7 @@ const desktop_json = await fetch("/portal/json/desktop.json").then(body => body.
 				let body = document.createElement("div");
 				body.classList.add("type-list");
 				let active;
+				let active_li;
 				let list = document.createElement("ul");
 				let content = document.createElement("div");
 				const container = document.getElementById(someJson["template-container-id"]);
@@ -196,7 +197,17 @@ const desktop_json = await fetch("/portal/json/desktop.json").then(body => body.
 					let itemcontent = document.createElement("div");
 					itemcontent.appendChild(project.content);
 					itemcontent.classList.add("opacity-hidden", "md");
+					if (!active) {
+						active = itemcontent;
+						active_li = item;
+						item.classList.add("active");
+						itemcontent.style.display = "block";
+						itemcontent.classList.add("opacity-visible");
+					}
 					item.addEventListener("click", function () {
+						active_li.classList.remove("active");
+						active_li = item;
+						item.classList.add("active");
 						if (active == itemcontent) return;
 						if (active) {
 							//active.style.opacity = 0;
