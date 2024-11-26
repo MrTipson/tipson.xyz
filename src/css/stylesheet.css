@@ -35,23 +35,19 @@ div{
     display: flex;
     align-items: center;
 }
-.toolbar-item{
-    margin-left: .3em;
-    margin-right: .3em;
-}
 #toolbar-bottom{
     bottom: 0;
     justify-content: space-between;
     z-index: 3;
 
-    height: 1.3em;
-    font-size: .9em;
+    @apply text-xl py-1 pr-1;
 }
 #toolbar-top{
     filter: var(--toolbar-shadow);
 }
 #tabs{
     display: flex;
+	@apply gap-2;
 }
 #tabs > div{
     background-color: var(--modifier-lighten);
@@ -119,13 +115,8 @@ div{
     left: 100px;
 }
 .window-content{
-    position: absolute;
     background-color: var(--window-inner);
-    top: 1em;
-    left: 5px;
-    right: 5px;
-    bottom: 5px;
-    padding: 5px;
+    @apply absolute inset-1.5 top-6 p-1.5;
 }
 .window-focused{
     z-index: 3;
@@ -145,22 +136,18 @@ div{
 }
 .buttons{
     pointer-events: initial;
-    display: flex;
-    font-size: 1.5em;
-    line-height: .5em;
+	@apply text-2xl flex justify-start;
+	line-height: 1.6rem;
 }
-.buttons > *{
-    padding: 0 .1em;
+.buttons > * {
+	@apply px-1;
 }
 .window-bar{
     margin: 0 .4em;
     pointer-events: none;
     display: flex;
     justify-content: space-between;
-}
-.window-bar .title{
-    font-size: .8em;
-    line-height: 1.2em;
+	@apply text-lg;
 }
 /* https://codepen.io/kizu/pen/NPrbEQ */
 .text-overflow{
