@@ -1,0 +1,54 @@
+---
+type ListWindow<T = any> = {
+	type: 'list',
+	mapping: {
+		name: (entry: T) => string,
+		content: (entry: T) => any,
+	},
+	values: T[],
+}
+type SimpleWindow = {
+	type: 'simple',
+} & ({ content_web: string } | { content: astroHTML.JSX.Element})
+export type Shortcut = {
+	title: string,
+	icon: string,
+	xpos: string,
+	ypos: string,
+} & (SimpleWindow | ListWindow)
+type Props = Shortcut
+const { title, icon, xpos, ypos, type } = Astro.props;
+if (type === 'list') {
+	var { mapping, values } = Astro.props;
+}
+---
+
+<div class="draggable shortcut" style={{ top: ypos, left: xpos }} data-type={type} data-title={title}>
+	<img src={icon}/>
+	<div>{title}</div>
+	<template>
+	{
+		type == 'simple'
+		?
+			"content_web" in Astro.props
+			? <iframe src={Astro.props.content_web}></iframe>
+			: <Astro.props.content/>
+		:
+			<div class="type-list" data-active="0">
+				<ul>
+					{// @ts-ignore
+						values.map((entry, i) => <li data-i={i} class={i === 0 ? "active" : ""}>{mapping.name(entry)}</li>)}
+					
+				</ul>
+				<div id="type-list-contents">
+					{// @ts-ignore
+						values.map((entry, i) => (
+						<div class={i === 0 ? "opacity-hidden md opacity-visible" : "opacity-hidden md"} style={i === 0 && "display: block" || ""}>
+							<mapping.content {entry}/>
+						</div>
+					))}
+				</div>
+			</div>
+	}		
+	</template>
+</div>

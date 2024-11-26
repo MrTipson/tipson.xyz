@@ -1,4 +1,3 @@
-const desktop_json = await fetch("/portal/json/desktop.json").then(body => body.json());
 (function () {
 	let desktop = document.getElementById("desktop");
 	let tabs = document.getElementById("tabs");
@@ -139,29 +138,8 @@ const desktop_json = await fetch("/portal/json/desktop.json").then(body => body.
 	let timer = document.getElementById("timer");
 	setInterval(() => timer.innerHTML = (new Date()).toLocaleTimeString("de-DE"), 1000);
 	// Import desktop
-	let test = desktop_json.shortcuts;
-	for (let i = 0; i < test.length; i++) {
-		addShortcut(test[i]);
-	}
-	function addShortcut(object) {
-		let shortcut = document.createElement("div");
-		shortcut.classList.add("draggable", "shortcut");
-		shortcut.style.top = object.ypos + "px";
-		shortcut.style.left = object.xpos + "px";
-
-		let icon = document.createElement("img");
-		if (object.icon) icon.setAttribute("src", object.icon);
-		shortcut.appendChild(icon);
-
-		let name = document.createElement("div");
-		name.innerText = object.name;
-		shortcut.appendChild(name);
-
-		if (object.window.content_web && object.window.type == "explorer") {
-			get(object.window.content_web, function (response) {
-				object.window.content = JSON.parse(response);
-			});
-		}
+	const shortcuts = document.getElementsByClassName("shortcut");
+	for (const shortcut of shortcuts) {
 		shortcut.addEventListener("click", function () {
 			if (shortcut.hasAttribute("disabled")) return;
 			if (dragFlag == 1) {
@@ -170,249 +148,42 @@ const desktop_json = await fetch("/portal/json/desktop.json").then(body => body.
 				dragFlag = 0;
 				return;
 			}
-			if (!object.cached) {
-				object.cached = formatWindow(object.window);
-			}
 			shortcut.setAttribute("disabled", "");
-			addWindow(object.window.title, object.cached, function () {
+			const content = shortcut.querySelector("template").content.cloneNode(true);
+			if (shortcut.dataset.type === "list") {
+				const contents = content.querySelector("#type-list-contents")?.children;
+				const list = content.querySelector("ul");
+				if (!contents || !list) return;
+				const listItems = list.children;
+				let active = 0;
+				list.addEventListener("click", event => {
+					const i = event.target.dataset?.i;
+
+					if (!i || active === i) return;
+					listItems[active].classList.remove("active");
+					listItems[i].classList.add("active");
+					contents[active].classList.toggle("opacity-visible");
+					const tmp = active;
+					setTimeout(function () {
+						contents[tmp].style.removeProperty("display");
+						contents[i].style.display = "block";
+						setTimeout(function () { contents[i].classList.toggle("opacity-visible") }, 50);
+						//itemcontent.style.opacity = 1;
+						active = i;
+					}, 500);
+					active = i;
+				});
+			} else if (shortcut.dataset.type === "simple") {
+				const maybeIframe = content.children[0];
+				if (maybeIframe.tagName === "IFRAME") {
+					if (maybeIframe.src === "/?recursion") {
+						maybeIframe.src = `/?rnd=${Number(new Date())}`;
+					}
+				}
+			}
+			addWindow(shortcut.dataset.title, content, function () {
 				shortcut.removeAttribute("disabled");
 			});
 		});
-		desktop.appendChild(shortcut);
-	}
-	function formatWindow(someJson) {
-		switch (someJson.type) {
-			case "list": {
-				let body = document.createElement("div");
-				body.classList.add("type-list");
-				let active;
-				let active_li;
-				let list = document.createElement("ul");
-				let content = document.createElement("div");
-				const container = document.getElementById(someJson["template-container-id"]);
-				for (const project of container.children) {
-					let item = document.createElement("li");
-					item.innerText = project.dataset.title;
-
-					let itemcontent = document.createElement("div");
-					itemcontent.appendChild(project.content);
-					itemcontent.classList.add("opacity-hidden", "md");
-					if (!active) {
-						active = itemcontent;
-						active_li = item;
-						item.classList.add("active");
-						itemcontent.style.display = "block";
-						itemcontent.classList.add("opacity-visible");
-					}
-					item.addEventListener("click", function () {
-						active_li.classList.remove("active");
-						active_li = item;
-						item.classList.add("active");
-						if (active == itemcontent) return;
-						if (active) {
-							//active.style.opacity = 0;
-							active.classList.toggle("opacity-visible");
-							setTimeout(function () {
-								active.style.removeProperty("display");
-								itemcontent.style.display = "block";
-								setTimeout(function () { itemcontent.classList.toggle("opacity-visible") }, 50);
-								//itemcontent.style.opacity = 1;
-								active = itemcontent;
-							}, 500);
-						} else {
-							itemcontent.style.display = "block";
-							setTimeout(function () { itemcontent.classList.toggle("opacity-visible") }, 50);
-							//itemcontent.style.opacity = 1;
-							active = itemcontent;
-						}
-
-					});
-					list.appendChild(item);
-					content.appendChild(itemcontent);
-				}
-				body.append(list, content);
-				return body;
-			}
-			case "explorer": {
-				let mapping = someJson.mapping;
-				let input = someJson.content;
-				if (mapping.index != null) {
-					input = input[mapping.index];
-				}
-
-				let elements = [];
-
-				let url = [];
-				let base = someJson.file_url_prefix;
-
-				let body = document.createElement("div");
-				body.classList.add("type-explorer");
-
-				let path = document.createElement("div");
-				path.classList.add("explorer-path", "text-overflow");
-				url.push(input[mapping.name]);
-				path.innerText = url.join("/") + "/";
-
-				let content = explorerHelper(input, mapping, function (element, name) {
-					body.removeChild(content);
-					body.appendChild(element);
-					content = element;
-					url.push(name);
-					elements.push(element);
-					path.innerText = url.join("/") + "/";
-				}, function (file, callback) {
-					//simpleWindow(base, url.join("/") + "/" + file)
-					callback(base, url.join("/") + "/" + file);
-				});
-				elements.push(content);
-
-				let addressBar = document.createElement("div");
-				addressBar.classList.add("address-bar");
-				let back = document.createElement("div");
-				back.classList.add("explorer-back");
-				back.addEventListener("click", function () {
-					if (elements.length > 1) {
-						elements.pop();
-						url.pop();
-						path.innerText = url.join("/") + "/";
-						body.removeChild(content);
-						body.appendChild(elements[elements.length - 1]);
-						content = elements[elements.length - 1];
-					}
-				});
-				let path_wrapper = document.createElement("div");
-				path_wrapper.appendChild(path);
-				path_wrapper.classList.add("text-overflow-wrapper");
-				addressBar.append(back, path_wrapper);
-				body.append(addressBar, content);
-				return body;
-			}
-			case "simple": {
-				if (someJson.content_web) {
-					var body = document.createElement("iframe");
-					body.setAttribute("src", someJson.content_web);
-				} else {
-					var body = document.createElement("div");
-					body.innerHTML = someJson.content;
-				}
-				return body;
-			}
-		}
-	}
-	function explorerHelper(someJson, mapping, callback, getFileUrl) {
-		if (someJson.cached) {
-			return someJson.cached;
-		}
-		let content = document.createElement("div");
-		content.classList.add("directory");
-		someJson[mapping.children] = someJson[mapping.children].sort(function (x, y) {
-			if (x[mapping.children]) { // x is dir
-				if (y[mapping.children]) { // y is dir
-					return x[mapping.name].localeCompare(y[mapping.name], undefined, { numeric: true, sensitivity: 'base' }); // compare name
-				} else { // y is not a dir
-					return -1; // order is ok
-				}
-			} else { // x is not a dir
-				if (y[mapping.children]) { // y is a dir
-					return 1; // order should be reverse
-				} else { // y is not a dir
-					return x[mapping.name].localeCompare(y[mapping.name], undefined, { numeric: true, sensitivity: 'base' }); // compare name
-				}
-			}
-		});
-		for (let i = 0; i < someJson[mapping.children].length; i++) {
-			let x = someJson[mapping.children][i];
-			let item = document.createElement("a");
-			let image = document.createElement("div");
-			image.classList.add("icon");
-
-			let name = document.createElement("div");
-			name.classList.add("filename");
-			name.innerText = x[mapping.name];
-			item.append(image, name);
-
-			if (x[mapping.children]) {
-				item.classList.add("folder");
-				item.addEventListener("click", function (event) {
-					event.preventDefault();
-					event.stopPropagation();
-					callback(explorerHelper(x, mapping, callback, getFileUrl), x[mapping.name]);
-				});
-			} else if (x[mapping.content]) {
-				item.classList.add("file");
-				item.addEventListener("click", function (event) {
-					event.preventDefault();
-					event.stopPropagation();
-					let body = document.createElement("div");
-					body.innerHTML = x[mapping.content];
-					addWindow(x[mapping.name], body);
-				});
-			} else {
-				item.classList.add("file");
-				getFileUrl(x[mapping.name], function (base, rel) {
-					item.setAttribute("href", base + rel);
-				});
-				item.setAttribute("ext", x[mapping.name].split(".").pop());
-				item.addEventListener("click", function (event) {
-					event.preventDefault();
-					event.stopPropagation();
-					getFileUrl(x[mapping.name], function (base, rel) {
-						simpleWindow(base, rel);
-					});
-				});
-			}
-			content.appendChild(item);
-		}
-		//someJson.cached = content;
-		return content;
-	}
-	function simpleWindow(base, url) {
-		const ext = url.split('.').pop().toLowerCase();
-		let content = null;
-		switch (ext) {
-			case "png":
-			case "jpg":
-			case "gif":
-				content = document.createElement("img");
-				content.setAttribute("src", base + url);
-				break;
-			case "mp4":
-			case "webm":
-				const source = document.createElement("source");
-				source.src = base + url;
-				source.type = "video/" + ext;
-				content = document.createElement("video");
-				content.autoplay = true;
-				content.controls = true;
-				content.volume = 0.5;
-				content.loop = true;
-				content.appendChild(source);
-				break;
-			case "ogg":
-			case "mp3":
-			case "wav":
-				const source2 = document.createElement("source");
-				source2.src = base + url;
-				source2.type = "audio/" + ext;
-				content = document.createElement("audio");
-				content.autoplay = true;
-				content.controls = true;
-				content.volume = 0.5;
-				content.appendChild(source2);
-				break;
-			default:
-				content = document.createElement("object");
-				content.setAttribute("data", base + url);
-		}
-		addWindow(url, content);
-	}
-	function get(url, callback) {
-		var xmlHttp = new XMLHttpRequest();
-		xmlHttp.onreadystatechange = function () {
-			if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
-				callback(xmlHttp.responseText);
-		}
-		xmlHttp.open("GET", url, true);
-		xmlHttp.send();
 	}
 })();
