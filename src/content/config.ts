@@ -40,4 +40,7 @@ export const collections = {
 			image: z.string().optional(),
 		}),
 	}),
+	'simple': defineCollection({
+		type: 'content',
+	})
 };

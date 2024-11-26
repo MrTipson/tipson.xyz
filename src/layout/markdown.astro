@@ -43,7 +43,7 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 ---
 
 <L {title} {description}>
-	<div class="columns">
+	<div class="columns bg-c1-fill">
 		<nav id="sidebar" class="sidebar">
 			<div class="sidebarPullMark"></div>
 			<div class="sidebarContent scrollbar" set:html={constructSidebar(sidebar)}/>

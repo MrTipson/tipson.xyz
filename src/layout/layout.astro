@@ -4,9 +4,10 @@ import "@/styles/global.css";
 interface Props {
 	title: string;
 	description: string;
+	class?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, class: className ="" } = Astro.props;
 import Config from "astro.config.mjs";
 ---
 
@@ -20,10 +21,12 @@ import Config from "astro.config.mjs";
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 	</head>
-	<body class="bg-c1-fill grid grid-rows-[max-content_minmax(0,1fr)] bottom-0 text-c1 font-mono">
-		<header class="bg-c2-fill flex justify-between px-6 py-2 row-span-1 bg-gradient-to-tr to-sky-700 from-blue-900">
-			<div class="flex items-center gap-2 md:gap-8">
+	<body class="bg-gradient-to-br to-sky-700 from-blue-900 grid grid-rows-[max-content_minmax(0,1fr)] bottom-0 text-c1 font-mono">
+		<header class="flex justify-between px-6 py-2 row-span-1">
+			<div class="flex items-baseline gap-2 md:gap-8 hover:*:underline underline-offset-4">
 				<a href="/" class="text-3xl font-extrabold text-c1 font-mono">tipson.xyz</a>
+				<a href="/about" class="text-xl text-c2 font-thin font-mono">About</a>
+				<a href="/compiler" class="text-xl text-c2 font-thin font-mono">Compiler</a>
 			</div>
 			<div class="flex gap-1">
 				<Button variant="ghost" size="icon" class="relative">
@@ -39,7 +42,7 @@ import Config from "astro.config.mjs";
 				<!--<ModeToggle client:load />-->
 			</div>
 		</header>
-		<div class="relative min-w-0">
+		<div class={"relative min-w-0 " + className}>
 			<slot />
 		</div>
 	</body>

@@ -6,8 +6,12 @@ import "@/styles/markdown.css";
 import { getCollection, type CollectionEntry } from "astro:content";
 import { default as DesktopShortcut } from "@/components/DesktopShortcut.astro";
 import Project2ListWindow from "@/components/Project2ListWindow.astro";
+import { getEntry } from "astro:content";
 
 const projects = await getCollection('projects');
+const about = await getEntry("simple", "about")
+					.then(entry => entry.render())
+					.then(({ Content }) => Content);
 ---
 <Layout title="Portal" description="portal">
 	<template id="window-template">
@@ -67,6 +71,7 @@ const projects = await getCollection('projects');
 				values={projects}
 				/>
 			<DesktopShortcut title="Recursion" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="150px" type="simple" content_web={"/?recursion"}/>
+			<DesktopShortcut title="About me" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="250px" type="simple" content={about}>
 		</div>
 		<div id="toolbar-bottom" class="toolbar">
 			<div id="tabs" class="toolbar-item"></div>

@@ -1,0 +1,27 @@
+---
+import "@/styles/markdown.css";
+import Layout from "@/layout/layout.astro";
+import type { CollectionEntry } from "astro:content";
+import { getCollection } from "astro:content";
+
+export function getStaticPaths() {
+	return getCollection('simple').then(entries => 
+		entries.map((entry) => ({
+			params: { slug: entry.slug },
+			props: { entry },
+		}))
+	)
+}
+
+interface Props {
+	entry: CollectionEntry<'simple'>
+}
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+---
+
+<Layout title='tipson.xyz' description='Website about me and my projects' class="md">
+	<div class="w-fit h-fit absolute inset-0 m-auto grid bg-gray-900 p-3 rounded drop-shadow-[0_1px_2px_white] overflow-auto max-h-[95%] max-w-full">
+		<Content/>
+	</div>
+</Layout>

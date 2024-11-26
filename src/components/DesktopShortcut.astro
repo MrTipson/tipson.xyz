@@ -32,7 +32,7 @@ if (type === 'list') {
 		?
 			"content_web" in Astro.props
 			? <iframe src={Astro.props.content_web}></iframe>
-			: <Astro.props.content/>
+			: <div class="md overflow-y-auto h-full"><Astro.props.content/></div>
 		:
 			<div class="type-list" data-active="0">
 				<ul>
