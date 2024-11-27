@@ -36,7 +36,7 @@ export const collections = {
 		schema: z.object({
 			title: z.string(),
 			technologies: z.string(),
-			github: z.string().optional(),
+			links: z.record(z.string(), z.string()).default({}),
 			image: z.string().optional(),
 		}),
 	}),

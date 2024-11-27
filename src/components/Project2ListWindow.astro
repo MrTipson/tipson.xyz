@@ -10,7 +10,7 @@ const { Content } = await entry.render();
 
 <>
 	<div class="px-4 text-c3 -mb-10">
-		{entry.data.github && <div># <a href={entry.data.github}>GitHub</a></div>}
+		{entry.data.links && <div>#{Object.entries(entry.data.links).map(([k,v]) => <a class="ml-2" href={v}>{k}</a>)}</div>}
 		<div># {entry.data.technologies}</div>
 	</div>
 	<Content/>
