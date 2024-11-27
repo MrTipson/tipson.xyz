@@ -43,12 +43,12 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 ---
 
 <L {title} {description}>
-	<div class="columns bg-c1-fill">
+	<div class="columns bg-c1-fill overflow-auto">
 		<nav id="sidebar" class="sidebar">
-			<div class="sidebarPullMark"></div>
+			<div class="sidebarPullMark"/>
 			<div class="sidebarContent scrollbar" set:html={constructSidebar(sidebar)}/>
 		</nav>
-		<main class="content scrollbar md pb-10">
+		<main class="content scrollbar md pb-10 max-w-full">
 			<slot />
 			<hr/>
 			<h2 id="change-log">Change log</h2>
@@ -60,7 +60,8 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 				}
 			</div>
 		</main>
-		<aside class="toc scrollbar">
+		<aside id="toc" class="toc scrollbar">
+			<div class="tocPullMark"/>
 			{headings.length > 0 && <h3 class="mx-0 text-c1-accent">Contents</h3>}
 			{
 				headings.filter(x => x.depth < 5).map((x) => (
@@ -78,26 +79,38 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 </L>
 
 <style>
+	.sidebar, .toc {
+		@apply fixed top-0 bottom-0 z-10 bg-c2-fill motion-reduce:transition-none max-w-[80%] transition-all;
+	}
 	.sidebar {
-		@apply fixed top-0 bottom-0 z-10 bg-c2-fill motion-reduce:transition-none -translate-x-full max-w-[80%];
+		@apply -translate-x-full;
 	}
 	.sidebar.open {
-		@apply border-r border-c3-accent translate-x-0 transition-all;
+		@apply border-r border-c3-accent translate-x-0;
 	}
 	.sidebarContent {
 		@apply p-4 text-c3 no-underline overflow-auto h-full;
 	}
+	.sidebarPullMark, .tocPullMark {
+		@apply top-20 block absolute p-2 bg-c2-fill z-10 border-t border-b border-c3;
+	}
 	.sidebarPullMark {
-		@apply top-20 block absolute left-full p-2 bg-c2-fill z-10 border-t border-r border-b border-c3;
+		@apply left-full border-r;
+	}
+	.tocPullMark {
+		@apply right-full border-l;
 	}
 	.columns {
-		@apply relative flex h-full flex-col-reverse scroll-pt-2;
+		@apply relative h-full scroll-pt-2;
 	}
 	.content {
-		@apply relative grow shrink px-12 scroll-pt-2 basis-0;
+		@apply relative grow shrink px-12 scroll-pt-2 basis-0 overflow-auto;
 	}
 	.toc {
-		@apply shrink-[0.5] px-12 pt-12 text-c1;
+		@apply right-0 translate-x-full px-12 py-12 text-c1 overflow-x-visible overflow-y-auto;
+	}
+	.toc.open {
+		@apply border-l border-c3-accent translate-x-0;
 	}
 	.scrollbar {
 		scrollbar-width: 4px;
@@ -114,7 +127,7 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 	}
 
 	@media screen(md) {
-		.sidebar {
+		.sidebar, .toc {
 			@apply static shrink-[0.5] bg-inherit shadow-none transform-none;
 		}
 		.sidebarPullMark {
@@ -124,13 +137,10 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 			@apply pt-12;
 		}
 		.columns {
-			@apply flex-row overflow-hidden;
-		}
-		.content {
-			@apply overflow-auto;
+			@apply flex flex-row overflow-hidden;
 		}
 		.toc {
-			@apply px-6 overflow-auto;
+			@apply px-6;
 		}
 	}
 </style>
@@ -144,5 +154,13 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 
 <script>
 const sidebar = document.getElementById("sidebar");
-document.querySelector(".sidebarPullMark")?.addEventListener("click", () => sidebar?.classList.toggle("open"));
+const toc = document.getElementById("toc");
+document.querySelector(".sidebarPullMark")?.addEventListener("click", () => {
+	sidebar?.classList.toggle("open");
+	toc?.classList.remove("open");
+});
+document.querySelector(".tocPullMark")?.addEventListener("click", () => {
+	toc?.classList.toggle("open");
+	sidebar?.classList.remove("open");	
+});
 </script>

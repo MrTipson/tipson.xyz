@@ -4,6 +4,9 @@ export default {
 	content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
 	prefix: "",
 	theme: {
+		screens: {
+			'md': '1000px',
+		},
 		extend: {
 			colors: {
 				c0: {
