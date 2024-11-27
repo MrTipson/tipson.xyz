@@ -62,18 +62,22 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 		</main>
 		<aside id="toc" class="toc scrollbar">
 			<div class="tocPullMark"/>
-			{headings.length > 0 && <h3 class="mx-0 text-c1-accent">Contents</h3>}
-			{
-				headings.filter(x => x.depth < 5).map((x) => (
-					<a
-						class={`block ${tocPaddings[x.depth]} text-c2 hover:text-c1`}
-						href={"#" + x.slug}
-					>
-						{x.text}
-					</a>
-				))
-			}
-			<a class="mx-0 text-c3 hover:text-c1" href="#change-log">Change log</h3>
+			<div class="tocContent">
+				{headings.length > 0 && <h3 class="mx-0 text-c1-accent">Contents</h3>}
+				<div class="toc-headings relative">
+					{
+						headings.filter(x => x.depth < 5).map((x) => (
+							<a
+								class={`block ${tocPaddings[x.depth]} text-c2 hover:text-c1`}
+								href={"#" + x.slug}
+							>
+								{x.text}
+							</a>
+						))
+					}
+					<a class="mx-0 text-c3 hover:text-c1" href="#change-log">Change log</h3>
+				</div>
+			</div>
 		</aside>
 	</div>
 </L>
@@ -104,10 +108,17 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 		@apply relative h-full scroll-pt-2;
 	}
 	.content {
-		@apply relative grow shrink px-12 scroll-pt-2 basis-0 overflow-auto;
+		@apply relative grow shrink px-12 scroll-pt-2 basis-0 overflow-auto h-full;
 	}
 	.toc {
-		@apply right-0 translate-x-full px-12 py-12 text-c1 overflow-x-visible overflow-y-auto;
+		@apply right-0 translate-x-full text-c1 overflow-x-visible;
+	}
+	.tocContent {
+		@apply h-full overflow-auto p-12;
+	}
+	.toc-headings::before {
+		top: calc(0.5rem + var(--toc-indicator-offset, 0rem));
+		@apply content-[''] border-c2-accent absolute -left-4 w-2 h-2 border-b border-r -rotate-45;
 	}
 	.toc.open {
 		@apply border-l border-c3-accent translate-x-0;
@@ -130,7 +141,7 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 		.sidebar, .toc {
 			@apply static shrink-[0.5] bg-inherit shadow-none transform-none;
 		}
-		.sidebarPullMark {
+		.sidebarPullMark, .tocPullMark {
 			@apply hidden;
 		}
 		.sidebarContent {
@@ -138,9 +149,6 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 		}
 		.columns {
 			@apply flex flex-row overflow-hidden;
-		}
-		.toc {
-			@apply px-6;
 		}
 	}
 </style>
@@ -163,4 +171,25 @@ document.querySelector(".tocPullMark")?.addEventListener("click", () => {
 	toc?.classList.toggle("open");
 	sidebar?.classList.remove("open");	
 });
+const headings = [...document.querySelectorAll("main > h1, main > h2, main > h3, main > h4")];
+const main = document.querySelector("main");
+console.log(main);
+main?.addEventListener("scroll", scrollHandler);
+main?.addEventListener("touchmove", scrollHandler);
+function scrollHandler(event) {
+	const relativePosition = (main.scrollTop / (main.scrollHeight - main.offsetHeight))**2;
+	console.log(main.scrollTop, main.scrollHeight, main.offsetHeight);
+	let i = 0;
+	while (i < headings.length && main.scrollTop >= headings[i].offsetTop) i++;
+	if (i > 0) {
+		i += (main.scrollTop-headings[i-1].offsetTop)/(headings[i].offsetTop-headings[i-1].offsetTop);
+	}
+	let j = headings.length-1;
+	while (j > 0 && main.scrollTop+main.offsetHeight < headings[j].offsetTop) j--;
+	if (j < headings.length - 1) {
+		j += (headings[j+1].offsetTop-headings[j].offsetTop)/(headings[j+1].offsetTop-(main.scrollTop));
+	}
+	let offset = Math.max(Math.floor((i-1)*(1-relativePosition)+j*relativePosition),0);
+	toc.style = `--toc-indicator-offset: ${offset*1.5}rem;`;
+}
 </script>
