@@ -28,6 +28,19 @@
 	--tertiary-fill: 223.3 12.7% 27.8%;
 	--tertiary-accent: 229, 29%, 47%;
 }
+* {
+	scrollbar-width: 4px;
+	scrollbar-color: hsl(var(--tertiary)) hsl(var(--tertiary-fill));
+}
+*::-webkit-scrollbar {
+	@apply w-3 m-1;
+}
+*::-webkit-scrollbar-thumb {
+	@apply bg-c3;
+}
+*::-webkit-scrollbar-track {
+	@apply bg-c3-accent;
+}
 
 * {
 	@apply box-border;

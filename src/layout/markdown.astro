@@ -123,19 +123,6 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 	.toc.open {
 		@apply border-l border-c3-accent translate-x-0;
 	}
-	.scrollbar {
-		scrollbar-width: 4px;
-		scrollbar-color: hsl(var(--tertiary)) hsl(var(--tertiary-fill));
-	}
-	.scrollbar::-webkit-scrollbar {
-		@apply w-3 m-1;
-	}
-	.scrollbar::-webkit-scrollbar-thumb {
-		@apply bg-c3;
-	}
-	.scrollbar::-webkit-scrollbar-track {
-		@apply bg-c3-accent;
-	}
 
 	@media screen(md) {
 		.sidebar, .toc {
@@ -171,12 +158,13 @@ document.querySelector(".tocPullMark")?.addEventListener("click", () => {
 	toc?.classList.toggle("open");
 	sidebar?.classList.remove("open");	
 });
-const headings = [...document.querySelectorAll("main > h1, main > h2, main > h3, main > h4")];
+
+const headings = [...document.querySelectorAll<HTMLHeadingElement>("main > h1, main > h2, main > h3, main > h4")];
 const main = document.querySelector("main");
-console.log(main);
 main?.addEventListener("scroll", scrollHandler);
 main?.addEventListener("touchmove", scrollHandler);
-function scrollHandler(event) {
+function scrollHandler() {
+	if(!main) return;
 	const relativePosition = (main.scrollTop / (main.scrollHeight - main.offsetHeight))**2;
 	console.log(main.scrollTop, main.scrollHeight, main.offsetHeight);
 	let i = 0;
@@ -190,6 +178,7 @@ function scrollHandler(event) {
 		j += (headings[j+1].offsetTop-headings[j].offsetTop)/(headings[j+1].offsetTop-(main.scrollTop));
 	}
 	let offset = Math.max(Math.floor((i-1)*(1-relativePosition)+j*relativePosition),0);
+	// @ts-ignore
 	toc.style = `--toc-indicator-offset: ${offset*1.5}rem;`;
 }
 </script>
