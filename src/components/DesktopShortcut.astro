@@ -10,16 +10,26 @@ type ListWindow<T = any> = {
 type SimpleWindow = {
 	type: 'simple',
 } & ({ content_web: string } | { content: astroHTML.JSX.Element})
+
+type GitWindow = {
+	type: 'explorer',
+	user: string,
+	repository: string,
+	branch: string,
+}
+
 export type Shortcut = {
 	title: string,
 	icon: string,
 	xpos: string,
 	ypos: string,
-} & (SimpleWindow | ListWindow)
+} & (SimpleWindow | ListWindow | GitWindow)
 type Props = Shortcut
 const { title, icon, xpos, ypos, type } = Astro.props;
 if (type === 'list') {
 	var { mapping, values } = Astro.props;
+} else if (type === 'explorer') {
+	var { user, repository, branch } = Astro.props;
 }
 ---
 
@@ -28,12 +38,23 @@ if (type === 'list') {
 	<div>{title}</div>
 	<template>
 	{
-		type == 'simple'
+		type === 'simple'
 		?
 			"content_web" in Astro.props
 			? <iframe src={Astro.props.content_web}></iframe>
 			: <div class="md overflow-y-auto h-full"><Astro.props.content/></div>
 		:
+			type === 'explorer'
+			?
+				<div class="type-explorer" data-user={user} data-repository={repository} data-branch={branch}>
+					<div class="address-bar">
+						<div class="explorer-back"/>
+						<div class="text-overflow-wrapper">
+							<div id ="path" class="explorer-path text-overflow"/>
+						</div>
+					</div>
+				</div>
+			:
 			<div class="type-list" data-active="0">
 				<ul>
 					{// @ts-ignore

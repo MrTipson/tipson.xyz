@@ -6,7 +6,7 @@
     --window-outer: #494949;
     --window-inner: #2c2c2c;
     --window-shadow: 0 0 2px black;
-    --explorer-item-size: 100px;
+    --explorer-item-size: 106px;
     --explorer-icon-size: 48px;
     --resize-width: 4px;
     --text: white;
@@ -276,6 +276,11 @@ div{
     display: flex;
     flex-direction: column;
     align-items: center;
+	@apply rounded gap-1 justify-center mx-3 my-2;
+}
+.type-explorer .folder:hover,
+.type-explorer .file:hover {
+	@apply bg-c2-fill/25;
 }
 .type-explorer .folder:active,
 .type-explorer .file:active{

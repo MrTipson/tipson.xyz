@@ -1,3 +1,5 @@
+import { bundledLanguages } from 'shiki/langs';
+import { codeToHtml } from 'shiki';
 (function () {
 	let desktop = document.getElementById("desktop");
 	let tabs = document.getElementById("tabs");
@@ -149,8 +151,15 @@
 				return;
 			}
 			shortcut.setAttribute("disabled", "");
-			const content = shortcut.querySelector("template").content.cloneNode(true);
-			if (shortcut.dataset.type === "list") {
+			addWindow(shortcut.dataset.title, formatWindow(shortcut), function () {
+				shortcut.removeAttribute("disabled");
+			});
+		});
+	}
+	function formatWindow(shortcut) {
+		switch (shortcut.dataset.type) {
+			case "list":
+				const content = shortcut.querySelector("template").content.cloneNode(true);
 				const contents = content.querySelector("#type-list-contents")?.children;
 				const list = content.querySelector("ul");
 				if (!contents || !list) return;
@@ -173,17 +182,166 @@
 					}, 500);
 					active = i;
 				});
-			} else if (shortcut.dataset.type === "simple") {
-				const maybeIframe = content.children[0];
-				if (maybeIframe.tagName === "IFRAME") {
-					if (maybeIframe.src === "/?recursion") {
-						maybeIframe.src = `/?rnd=${Number(new Date())}`;
-					}
+				return content;
+			case "explorer": {
+				if (shortcut.cached) {
+					return shortcut.cached;
 				}
+				let elements = [];
+
+				const body = shortcut.querySelector("template").content.cloneNode(true).children[0];
+				let url = [`https://github.com/${body.dataset.user}/${body.dataset.repository}/tree/${body.dataset.branch}`];
+				let base = `https://raw.githubusercontent.com/${body.dataset.user}/${body.dataset.repository}/refs/heads/${body.dataset.branch}/`;
+
+				const path = body.querySelector("#path");
+				path.innerText = url.join("/") + "/";
+
+				listGithub(url[0]).then(items => {
+					let content = explorerHelper(url, items, function (element, name) {
+						body.removeChild(content);
+						body.appendChild(element);
+						content = element;
+						url.push(name);
+						elements.push(element);
+						path.innerText = url.join("/") + "/";
+					}, function (name) {
+						return base + [...url.slice(1), name].join('/');
+					});
+					body.append(content);
+					elements.push(content);
+
+					const back = body.querySelector(".explorer-back");
+					back.addEventListener("click", function () {
+						if (elements.length > 1) {
+							elements.pop();
+							url.pop();
+							path.innerText = url.join("/") + "/";
+							body.removeChild(content);
+							body.appendChild(elements[elements.length - 1]);
+							content = elements[elements.length - 1];
+						}
+					});
+				});
+				shortcut.cached = body;
+				return body;
 			}
-			addWindow(shortcut.dataset.title, content, function () {
-				shortcut.removeAttribute("disabled");
-			});
+			case "simple": {
+				const content = shortcut.querySelector("template").content.cloneNode(true);
+				const maybeIframe = content.children[0];
+				if (maybeIframe.tagName === "IFRAME" && maybeIframe.src === "/?recursion") {
+					maybeIframe.src = `/?rnd=${Number(new Date())}`;
+				}
+				return content;
+			}
+		}
+	}
+	function listGithub(url) {
+		return fetch(url).then(x => x.text()).then(text => {
+			const doc = document.createElement("html");
+			doc.innerHTML = text;
+			const parsed = JSON.parse(doc.querySelector("#repo-content-turbo-frame script[type=\"application/json\"").innerText);
+			return parsed.props?.initialPayload.tree.items || parsed.payload.tree.items;
 		});
+	}
+	function explorerHelper(url, items, callback, getFileUrl) {
+		if (items.cached) {
+			return items.cached;
+		}
+		let content = document.createElement("div");
+		content.classList.add("directory");
+		items = items.sort(function (x, y) {
+			if (x.contentType === y.contentType) {
+				return x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: 'base' });
+			} else {
+				// if x is the directory -> -1 (order ok), otherwise -> 1 (swap order)
+				return (-1) ** (x.contentType === 'directory');
+			}
+		});
+		for (const x of items) {
+			let item = document.createElement("a");
+			let image = document.createElement("div");
+			image.classList.add("icon");
+
+			let name = document.createElement("div");
+			name.classList.add("filename");
+			name.innerText = x.name;
+			item.append(image, name);
+
+			if (x.contentType === 'directory') {
+				item.classList.add("folder");
+				item.addEventListener("click", function (event) {
+					event.preventDefault();
+					event.stopPropagation();
+					listGithub(url.join('/') + '/' + x.name).then(items => {
+						if (!x.cached) {
+							x.cached = explorerHelper(url, items, callback, getFileUrl);
+						}
+						callback(x.cached, x.name);
+					});
+				});
+			} else {
+				item.classList.add("file");
+				item.setAttribute("href", getFileUrl(x.name));
+				item.setAttribute("ext", x.name.split(".").pop());
+				item.addEventListener("click", function (event) {
+					event.preventDefault();
+					event.stopPropagation();
+					simpleWindow(getFileUrl(x.name));
+				});
+			}
+			content.appendChild(item);
+		}
+		return content;
+	}
+	function simpleWindow(url) {
+		const ext = url.split('.').pop().toLowerCase();
+		let content = null;
+		switch (ext) {
+			case "png":
+			case "jpg":
+			case "gif":
+				content = document.createElement("img");
+				content.setAttribute("src", url);
+				break;
+			case "mp4":
+			case "webm":
+				const source = document.createElement("source");
+				source.src = url;
+				source.type = "video/" + ext;
+				content = document.createElement("video");
+				content.autoplay = true;
+				content.controls = true;
+				content.volume = 0.5;
+				content.loop = true;
+				content.appendChild(source);
+				break;
+			case "ogg":
+			case "mp3":
+			case "wav":
+				const source2 = document.createElement("source");
+				source2.src = url;
+				source2.type = "audio/" + ext;
+				content = document.createElement("audio");
+				content.autoplay = true;
+				content.controls = true;
+				content.volume = 0.5;
+				content.appendChild(source2);
+				break;
+			case "pdf":
+				content = document.createElement("object");
+				content.setAttribute("data", url);
+				break;
+			default:
+				fetch(url).then(x => x.text()).then(async text => {
+					content = document.createElement("div");
+					content.classList.add("h-full", "w-full", "overflow-auto", "scrollbar")
+					const lang = Object.keys(bundledLanguages).includes(ext) ? ext : 'plaintext';
+					content.innerHTML = await codeToHtml(text, { lang: lang, theme: 'github-dark' });
+					content.children[0].style.background = "transparent";
+					addWindow(url, content);
+				});
+				return;
+		}
+		addWindow(url, content);
 	}
 })();
