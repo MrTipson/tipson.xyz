@@ -1,7 +1,6 @@
 ---
 import Layout from "@/layout/layout.astro";
-import "@/css/background.css";
-import "@/css/stylesheet.css";
+import "@/styles/windows.css";
 import "@/styles/markdown.css";
 import { getCollection, type CollectionEntry } from "astro:content";
 import DesktopShortcut, { ExplorerWindow, ListWindow, SimpleWindow } from "@/components/DesktopShortcut.astro";
@@ -79,3 +78,119 @@ const about = await getEntry("simple", "about")
 	</div>
 	<script src="src/js/window.js"></script>
 </Layout>
+
+<style>
+.wallpaper{
+	position:relative;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+}
+.bg {
+	position:absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	background: rgb(16,8,14);
+	background: linear-gradient(0deg, rgba(16,8,14,1) 0%, rgba(46,14,51) 62%, rgb(148, 33, 62) 100%);
+}
+.mountains {
+	position:absolute;
+	top: 0;
+	bottom: 110px;
+	left: 0;
+	width: 200%;
+	background: url("/portal/img/bg/Mountains.svg") repeat-x bottom;
+	background-size: 100vw;
+	animation: roll linear 20s infinite;
+}
+.stars {
+	position:absolute;
+	top: 0;
+	bottom: 450px;
+	left: 0;
+	width: 200%;
+	background: url("/portal/img/bg/Stars.svg") repeat-x bottom;
+	background-size: 100vw;
+	animation: roll linear 70s infinite;
+}
+.trees {
+	position:absolute;
+	top: 0;
+	bottom: 110px;
+	left: 0;
+	width: 200%;
+	background: url("/portal/img/bg/Trees.svg") repeat-x bottom;
+	background-size: 100vw;
+	animation: roll linear 30s infinite;
+}
+.sun {
+	position:absolute;
+	right: 25%;
+	bottom: 220px;
+	width: 20vw;
+	height: 20vw;
+	background: url("/portal/img/bg/Sun.svg") repeat-x bottom;
+	background-size: 20vw;
+	animation: float ease-in-out 50s infinite alternate-reverse;
+}
+.floor {
+	position:absolute;
+	top: calc(100vh - 220px);
+	bottom: 0;
+	left: 50%;
+	width: 200%;
+	perspective: 140px;
+	perspective-origin: top center;
+	transform: translateX(-50%);
+	/*animation: floor linear 1s infinite;*/
+}
+.floor-rotate {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	transform: rotate3d(1,0,0,90deg);
+}
+.floor-grid {
+	position: relative;
+	width:300%;
+	height:100%;
+	background-size: 5vw 3vw;
+	background-image:
+		conic-gradient(from 90deg at 2px 2px,black 90deg, transparent 0);
+	animation: floor linear 30s infinite;
+}
+.floor-bg {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	background-image: linear-gradient(to top, rgb(255, 68, 232), black);
+}
+@keyframes roll {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(-50%);
+	}
+}
+
+@keyframes float {
+	from {
+		transform: translateY(0);
+	}
+	to {
+		transform: translateY(75%);
+	}
+}
+
+@keyframes floor {
+	from {
+		transform: translateX(-25%);
+	}
+	to {
+		transform: translateX(-75%);
+	}
+}
+</style>

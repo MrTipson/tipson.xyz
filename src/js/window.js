@@ -213,7 +213,7 @@ import { codeToHtml } from 'shiki';
 					path.innerText = url.join("/") + "/";
 				}
 				let content = explorerHelper(url, input, replaceExplorerContent, function (name) {
-					return base + [...url, name].join('/');
+					return [base, [...url, name].join('/')];
 				});
 				body.append(content);
 				elements.push(content);
@@ -279,21 +279,22 @@ import { codeToHtml } from 'shiki';
 				});
 			} else {
 				item.classList.add("file");
-				const fileUrl = getFileUrl(x.name);
-				item.setAttribute("href", fileUrl);
+				const [base, filePath] = getFileUrl(x.name);
+				item.setAttribute("href", base + filePath);
 				item.setAttribute("download", x.name);
 				item.setAttribute("ext", x.name.split(".").pop());
 				item.addEventListener("click", function (event) {
 					event.preventDefault();
 					event.stopPropagation();
-					simpleWindow(fileUrl);
+					simpleWindow(base, filePath);
 				});
 			}
 			content.appendChild(item);
 		}
 		return content;
 	}
-	function simpleWindow(url) {
+	function simpleWindow(base, filePath) {
+		const url = base + filePath;
 		const ext = url.split('.').pop().toLowerCase();
 		let content = null;
 		switch (ext) {
@@ -334,15 +335,15 @@ import { codeToHtml } from 'shiki';
 			default:
 				fetch(url).then(x => x.text()).then(async text => {
 					content = document.createElement("div");
-					content.classList.add("h-full", "w-full", "overflow-auto", "scrollbar")
+					content.classList.add("h-full", "w-full", "overflow-auto", "scrollbar", "text-c3")
 					const lang = Object.keys(bundledLanguages).includes(ext) ? ext : 'plaintext';
 					content.innerHTML = await codeToHtml(text, { lang: lang, theme: 'github-dark' });
-					content.children[0].style.background = "transparent";
-					addWindow(url, content);
+					content.children[0].style = "";
+					addWindow(filePath, content);
 				});
 				return;
 		}
-		addWindow(url, content);
+		addWindow(filePath, content);
 	}
 	function remapExplorerJSON(json, mapping) {
 		const mapper = (x) => {
