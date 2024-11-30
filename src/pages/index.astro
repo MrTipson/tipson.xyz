@@ -4,7 +4,7 @@ import "@/css/background.css";
 import "@/css/stylesheet.css";
 import "@/styles/markdown.css";
 import { getCollection, type CollectionEntry } from "astro:content";
-import { default as DesktopShortcut } from "@/components/DesktopShortcut.astro";
+import DesktopShortcut, { ExplorerWindow, ListWindow, SimpleWindow } from "@/components/DesktopShortcut.astro";
 import Project2ListWindow from "@/components/Project2ListWindow.astro";
 import { getEntry } from "astro:content";
 
@@ -58,22 +58,16 @@ const about = await getEntry("simple", "about")
 					</div>
 				</div>
 			</div>
-			<DesktopShortcut
-				title="Projects"
-				icon="/portal/img/desktop-icons/folder.png"
-				xpos="20px"
-				ypos="50px"
-				type="list"
-				mapping={{
+			<DesktopShortcut title="Projects" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="50px" type="list">
+				<ListWindow mapping={{
 					name: (entry: CollectionEntry<"projects">) => entry.data.title,
 					content: Project2ListWindow,
-				}}
-				values={projects}
-				/>
-			<DesktopShortcut title="Recursion" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="150px" type="simple" content_web={"/?recursion"}/>
-			<DesktopShortcut title="About me" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="250px" type="simple" content={about}/>
-			<DesktopShortcut title="WebStg" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="350px" type="explorer" user="mrtipson" repository="webstg" branch="master"/>
-			<DesktopShortcut title="FogBuddy" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="450px" type="explorer" user="mrtipson" repository="fogbuddy" branch="master"/>
+				}} values={projects}/>
+			</DesktopShortcut>
+			<DesktopShortcut title="Recursion" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="150px" type="simple"><SimpleWindow content_web={"/?recursion"}/></DesktopShortcut>
+			<DesktopShortcut title="About me" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="250px" type="simple"><SimpleWindow content={about}/></DesktopShortcut>
+			<DesktopShortcut title="WebStg" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="350px" type="explorer"><ExplorerWindow user="mrtipson" repository="webstg" branch="master"/></DesktopShortcut>
+			<DesktopShortcut title="FogBuddy" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="450px" type="explorer"><ExplorerWindow user="mrtipson" repository="fogbuddy" branch="master"/></DesktopShortcut>
 		</div>
 		<div id="toolbar-bottom" class="toolbar">
 			<div id="tabs" class="toolbar-item"></div>

@@ -1,0 +1,25 @@
+---
+type Props<T = any> = {
+	mapping: {
+		name: (entry: T) => string,
+		content: (entry: T) => any,
+	},
+	values: T[],
+}
+
+const { mapping, values } = Astro.props;
+---
+<div class="type-list" data-active="0">
+	<ul>
+		{values.map((entry, i) => <li data-i={i} class={i === 0 ? "active" : ""}>{mapping.name(entry)}</li>)}
+	</ul>
+	<div id="type-list-contents">
+		{
+			values.map((entry, i) => (
+				<div class={i === 0 ? "opacity-hidden md opacity-visible" : "opacity-hidden md"} style={i === 0 && "display: block" || ""}>
+					<mapping.content {entry}/>
+				</div>
+			))
+		}
+	</div>
+</div>

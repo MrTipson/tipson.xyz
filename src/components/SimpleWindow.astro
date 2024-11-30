@@ -1,0 +1,8 @@
+---
+type Props = ({ content_web: string } | { content: astroHTML.JSX.Element})
+---
+{
+	'content_web' in Astro.props
+	? <iframe src={Astro.props.content_web}></iframe>
+	: <div class='md overflow-y-auto h-full'><Astro.props.content/></div>
+}
