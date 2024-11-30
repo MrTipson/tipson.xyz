@@ -1,0 +1,104 @@
+{
+	"tree": [
+		{
+			"path": ".github",
+			"type": "tree"
+		},
+		{
+			"path": ".github/workflows",
+			"type": "tree"
+		},
+		{
+			"path": ".github/workflows/pages.yml",
+			"type": "blob"
+		},
+		{
+			"path": "LICENSE",
+			"type": "blob"
+		},
+		{
+			"path": "Makefile",
+			"type": "blob"
+		},
+		{
+			"path": "README.md",
+			"type": "blob"
+		},
+		{
+			"path": "bin",
+			"type": "tree"
+		},
+		{
+			"path": "bin/.gitignore",
+			"type": "blob"
+		},
+		{
+			"path": "docs",
+			"type": "tree"
+		},
+		{
+			"path": "docs/helper.md",
+			"type": "blob"
+		},
+		{
+			"path": "docs/memory.md",
+			"type": "blob"
+		},
+		{
+			"path": "src",
+			"type": "tree"
+		},
+		{
+			"path": "src/tokenize.p0",
+			"type": "blob"
+		},
+		{
+			"path": "src/unistd.s",
+			"type": "blob"
+		},
+		{
+			"path": "test",
+			"type": "tree"
+		},
+		{
+			"path": "test/Makefile",
+			"type": "blob"
+		},
+		{
+			"path": "test/array.txt",
+			"type": "blob"
+		},
+		{
+			"path": "test/insertionsort.p0",
+			"type": "blob"
+		},
+		{
+			"path": "test/out",
+			"type": "tree"
+		},
+		{
+			"path": "test/out/args.out",
+			"type": "blob"
+		},
+		{
+			"path": "test/out/arrays.out",
+			"type": "blob"
+		},
+		{
+			"path": "test/src",
+			"type": "tree"
+		},
+		{
+			"path": "test/src/args.p1",
+			"type": "blob"
+		},
+		{
+			"path": "test/src/arrays.p1",
+			"type": "blob"
+		},
+		{
+			"path": "xmem",
+			"type": "blob"
+		}
+	]
+}

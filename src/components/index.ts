@@ -2,3 +2,8 @@ export { default as Button } from '@/components/Button.astro';
 export { default as CodeBlock } from '@/components/CodeBlock.astro';
 export { default as Icon } from '@/components/Icon.astro';
 export { default as DesktopShortcut } from '@/components/DesktopShortcut.astro';
+export { default as ExplorerWindow } from '@/components/ExplorerWindow.astro';
+export { default as ExplorerData } from '@/components/ExplorerData.astro';
+export { default as ListWindow } from '@/components/ListWindow.astro';
+export { default as SimpleWindow } from '@/components/SimpleWindow.astro';
+export { default as GithubWindow } from '@/components/GithubWindow.astro';

@@ -187,40 +187,47 @@ import { codeToHtml } from 'shiki';
 				if (shortcut.cached) {
 					return shortcut.cached;
 				}
+				const body = shortcut.querySelector("template").content.cloneNode(true).children[0];
+				const script = body.querySelector("script");
+				let input = JSON.parse(script.textContent);
+				if ("field" in script.dataset) {
+					input = input[script.dataset.field];
+				}
+				input = remapExplorerJSON(input, {
+					name: script.dataset.mappingName,
+					items: script.dataset.mappingItems,
+				});
 				let elements = [];
 
-				const body = shortcut.querySelector("template").content.cloneNode(true).children[0];
-				let url = [`https://github.com/${body.dataset.user}/${body.dataset.repository}/tree/${body.dataset.branch}`];
-				let base = `https://raw.githubusercontent.com/${body.dataset.user}/${body.dataset.repository}/refs/heads/${body.dataset.branch}/`;
+				let url = [];
+				const base = script.dataset.fileUrlPrefix;
 
 				const path = body.querySelector("#path");
 				path.innerText = url.join("/") + "/";
 
-				listGithub(url[0]).then(items => {
-					let content = explorerHelper(url, items, function (element, name) {
-						body.removeChild(content);
-						body.appendChild(element);
-						content = element;
-						url.push(name);
-						elements.push(element);
-						path.innerText = url.join("/") + "/";
-					}, function (name) {
-						return base + [...url.slice(1), name].join('/');
-					});
-					body.append(content);
-					elements.push(content);
+				function replaceExplorerContent(element) {
+					body.removeChild(content);
+					body.appendChild(element);
+					content = element;
+					elements.push(element);
+					path.innerText = url.join("/") + "/";
+				}
+				let content = explorerHelper(url, input, replaceExplorerContent, function (name) {
+					return base + [...url, name].join('/');
+				});
+				body.append(content);
+				elements.push(content);
 
-					const back = body.querySelector(".explorer-back");
-					back.addEventListener("click", function () {
-						if (elements.length > 1) {
-							elements.pop();
-							url.pop();
-							path.innerText = url.join("/") + "/";
-							body.removeChild(content);
-							body.appendChild(elements[elements.length - 1]);
-							content = elements[elements.length - 1];
-						}
-					});
+				const back = body.querySelector(".explorer-back");
+				back.addEventListener("click", function () {
+					if (elements.length > 1) {
+						elements.pop();
+						url.pop();
+						path.innerText = url.join("/") + "/";
+						body.removeChild(content);
+						body.appendChild(elements[elements.length - 1]);
+						content = elements[elements.length - 1];
+					}
 				});
 				shortcut.cached = body;
 				return body;
@@ -235,14 +242,6 @@ import { codeToHtml } from 'shiki';
 			}
 		}
 	}
-	function listGithub(url) {
-		return fetch(url).then(x => x.text()).then(text => {
-			const doc = document.createElement("html");
-			doc.innerHTML = text;
-			const parsed = JSON.parse(doc.querySelector("#repo-content-turbo-frame script[type=\"application/json\"").innerText);
-			return parsed.props?.initialPayload.tree.items || parsed.payload.tree.items;
-		});
-	}
 	function explorerHelper(url, items, callback, getFileUrl) {
 		if (items.cached) {
 			return items.cached;
@@ -250,11 +249,11 @@ import { codeToHtml } from 'shiki';
 		let content = document.createElement("div");
 		content.classList.add("directory");
 		items = items.sort(function (x, y) {
-			if (x.contentType === y.contentType) {
+			if (x.type === y.type) {
 				return x.name.localeCompare(y.name, undefined, { numeric: true, sensitivity: 'base' });
 			} else {
 				// if x is the directory -> -1 (order ok), otherwise -> 1 (swap order)
-				return (-1) ** (x.contentType === 'directory');
+				return x.type === 'directory' ? -1 : 1;
 			}
 		});
 		for (const x of items) {
@@ -267,26 +266,27 @@ import { codeToHtml } from 'shiki';
 			name.innerText = x.name;
 			item.append(image, name);
 
-			if (x.contentType === 'directory') {
+			if (x.type === 'directory') {
 				item.classList.add("folder");
 				item.addEventListener("click", function (event) {
 					event.preventDefault();
 					event.stopPropagation();
-					listGithub(url.join('/') + '/' + x.name).then(items => {
-						if (!x.cached) {
-							x.cached = explorerHelper(url, items, callback, getFileUrl);
-						}
-						callback(x.cached, x.name);
-					});
+					url.push(x.name);
+					if (!x.items.cached) {
+						x.items.cached = explorerHelper(url, x.items, callback, getFileUrl);
+					}
+					callback(x.items.cached, x.name);
 				});
 			} else {
 				item.classList.add("file");
-				item.setAttribute("href", getFileUrl(x.name));
+				const fileUrl = getFileUrl(x.name);
+				item.setAttribute("href", fileUrl);
+				item.setAttribute("download", x.name);
 				item.setAttribute("ext", x.name.split(".").pop());
 				item.addEventListener("click", function (event) {
 					event.preventDefault();
 					event.stopPropagation();
-					simpleWindow(getFileUrl(x.name));
+					simpleWindow(fileUrl);
 				});
 			}
 			content.appendChild(item);
@@ -343,5 +343,15 @@ import { codeToHtml } from 'shiki';
 				return;
 		}
 		addWindow(url, content);
+	}
+	function remapExplorerJSON(json, mapping) {
+		const mapper = (x) => {
+			return {
+				type: x[mapping.items] ? 'directory' : 'file',
+				...mapping.name in x && { name: x[mapping.name] },
+				...mapping.items in x && { items: x[mapping.items].map(mapper) },
+			};
+		}
+		return json.map(mapper);
 	}
 })();

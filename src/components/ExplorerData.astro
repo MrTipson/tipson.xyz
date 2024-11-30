@@ -1,0 +1,19 @@
+---
+type Props = {
+	file_url_prefix: string,
+	mapping: {
+		name: string,
+		items: string,
+	}
+	content: string,
+	field?: string,
+}
+const { file_url_prefix, mapping, field } = Astro.props;
+const dataset = {
+	"data-file-url-prefix": file_url_prefix,
+	"data-mapping-name": mapping.name,
+	"data-mapping-items": mapping.items,
+	... field && { "data-field": field },
+}
+---
+<script type="application/json" {...dataset} set:html={Astro.props.content}/>

@@ -4,6 +4,7 @@
 		"dist/"
 	],
 	"compilerOptions": {
+		"resolveJsonModule": true,
 		"baseUrl": ".",
 		"paths": {
 			"@/*": [

@@ -1,18 +1,9 @@
----
-export type Props = {
-	user: string,
-	repository: string,
-	branch: string,
-}
-
-const { user, repository, branch } = Astro.props;
----
-
-<div class="type-explorer" data-user={user} data-repository={repository} data-branch={branch}>
+<div class="type-explorer">
 	<div class="address-bar">
 		<div class="explorer-back"/>
 		<div class="text-overflow-wrapper">
 			<div id ="path" class="explorer-path text-overflow"/>
 		</div>
 	</div>
+	<slot/>
 </div>

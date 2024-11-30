@@ -1,0 +1,64 @@
+---
+import ExplorerData from '@/components/ExplorerData.astro';
+import treeDummy from '@/json/github-api-dummy.json';
+import ExplorerWindow from './ExplorerWindow.astro';
+export interface Props {
+	user: string,
+	repository: string,
+	tree_sha: string,
+}
+const { user, repository, tree_sha } = Astro.props;
+let response = treeDummy;
+if (import.meta.env.PROD) {
+	const url = `https://api.github.com/repos/${user}/${repository}/git/trees/${tree_sha}?recursive=true`;
+	console.log("GitHub API call:", url);
+	response = await fetch(url, {
+		headers: {
+			"Accept": "application/vnd.github+json",
+			"Authorization": `Bearer ${import.meta.env.GITHUB}`,
+			"X-GitHub-Api-Version": "2022-11-28",
+		}
+	}).then(response => response.json());
+}
+
+function unflattenTree(tree: { path: string, type: string }[]) {
+	const nodeStack = []
+	type Node = { name: string, items?: Node[] }
+	let currentNode: Node[] = [];
+	let currentPrefix = "";
+	for (const node of tree) {
+		while(!node.path.startsWith(currentPrefix)) {
+			const [prefix, node] = nodeStack.pop() as [string, Node[]];
+			const tmp = {
+				name: currentPrefix,
+				items: currentNode,
+			}
+			if (prefix !== "" && currentPrefix.startsWith(prefix)) {
+				tmp.name = currentPrefix.substring(prefix.length+1);
+			}
+			currentPrefix = prefix;
+			currentNode = node;
+			currentNode.push(tmp);
+		}
+		if (node.path.startsWith(currentPrefix)) {
+			if (node.type === "blob") {
+				const offset = currentPrefix === "" ? 0 : 1
+				currentNode.push({name: node.path.substring(currentPrefix.length+offset)}); } else {
+				nodeStack.push([currentPrefix, currentNode]);
+				currentPrefix = node.path;
+				currentNode = [];
+			}
+		}
+	}
+	return currentNode;
+}
+
+const mapping = {
+	name: 'name',
+	items: 'items',
+}
+const file_url_prefix = `https://raw.githubusercontent.com/${user}/${repository}/refs/heads/${tree_sha}/`;
+---
+<ExplorerWindow>
+	<ExplorerData content={JSON.stringify(unflattenTree(response.tree))} {mapping} {file_url_prefix} />
+</ExplorerWindow>
