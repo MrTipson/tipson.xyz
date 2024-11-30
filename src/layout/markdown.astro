@@ -21,6 +21,7 @@ for(const change of changes) {
 		authors.set(change.author.id, author.data);
 	}
 }
+const tocHeadings = headings.filter(x => x.depth < 5);
 const tocPaddings = [undefined, "pl-0", "pl-4", "pl-8", "pl-10", "pl-12", "pl-14"];
 const linkStyle = "no-underline block text-c2 ml-8 hover:text-c1";
 const detailsStyle = "pl-2 ml-6 open:text-c1 my-3";
@@ -63,19 +64,19 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 		<aside id="toc" class="toc scrollbar">
 			<div class="tocPullMark"/>
 			<div class="tocContent">
-				{headings.length > 0 && <h3 class="mx-0 text-c1-accent">Contents</h3>}
+				{<h3 class="mx-0 text-c1-accent">Contents</h3>}
 				<div class="toc-headings relative">
 					{
-						headings.filter(x => x.depth < 5).map((x) => (
+						tocHeadings.map((x,i) => (
 							<a
-								class={`block ${tocPaddings[x.depth]} text-c2 hover:text-c1`}
+								class={`block ${tocPaddings[x.depth]} text-c2 hover:text-c1 ${i === 0 ? " hasIndicator" : ""}`}
 								href={"#" + x.slug}
 							>
 								{x.text}
 							</a>
 						))
 					}
-					<a class="mx-0 text-c3 hover:text-c1" href="#change-log">Change log</h3>
+					<a class={`mx-0 text-c3 hover:text-c1 ${tocHeadings.length === 0 ? "hasIndicator" : ""}`} href="#change-log">Change log</a>
 				</div>
 			</div>
 		</aside>
@@ -116,9 +117,8 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 	.tocContent {
 		@apply h-full overflow-auto p-12;
 	}
-	.toc-headings::before {
-		top: calc(0.5rem + var(--toc-indicator-offset, 0rem));
-		@apply content-[''] border-c2-accent absolute -left-4 w-2 h-2 border-b border-r -rotate-45;
+	.hasIndicator::before {
+		@apply content-[''] border-c2-accent absolute -left-4 w-2 h-2 border-b border-r -rotate-45 translate-y-2;
 	}
 	.toc.open {
 		@apply border-l border-c3-accent translate-x-0;
@@ -160,13 +160,14 @@ document.querySelector(".tocPullMark")?.addEventListener("click", () => {
 });
 
 const headings = [...document.querySelectorAll<HTMLHeadingElement>("main > h1, main > h2, main > h3, main > h4")];
+const tocElements = document.querySelector(".toc-headings")?.children || [];
 const main = document.querySelector("main");
 main?.addEventListener("scroll", scrollHandler);
 main?.addEventListener("touchmove", scrollHandler);
+let hasIndicator = 0;
 function scrollHandler() {
 	if(!main) return;
 	const relativePosition = (main.scrollTop / (main.scrollHeight - main.offsetHeight))**2;
-	console.log(main.scrollTop, main.scrollHeight, main.offsetHeight);
 	let i = 0;
 	while (i < headings.length && main.scrollTop >= headings[i].offsetTop) i++;
 	if (i > 0) {
@@ -177,8 +178,11 @@ function scrollHandler() {
 	if (j < headings.length - 1) {
 		j += (headings[j+1].offsetTop-headings[j].offsetTop)/(headings[j+1].offsetTop-(main.scrollTop));
 	}
-	let offset = Math.max(Math.floor((i-1)*(1-relativePosition)+j*relativePosition),0);
-	// @ts-ignore
-	toc.style = `--toc-indicator-offset: ${offset*1.5}rem;`;
+	let offset = Math.floor((i-1)*(1-relativePosition)+j*relativePosition);
+	if (offset >= 0 && offset < tocElements.length && offset !== hasIndicator) {
+		tocElements[hasIndicator].classList.remove("hasIndicator");
+		tocElements[offset].classList.add("hasIndicator");
+		hasIndicator = offset;
+	}
 }
 </script>
