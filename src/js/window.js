@@ -60,21 +60,25 @@ import { codeToHtml } from 'shiki';
 		focusWindow(element);
 	}
 	// Resize, drag logic
-	let mouseCoords = [];
+	let mouseCoords = undefined;
+	let dxy = undefined;
 	let target;
 	let resize = null;
 	let min_width = 300;
 	let min_height = 200;
 	let dragFlag = 0;
-	document.addEventListener("mousedown", function (event) {
-		event = event || window.event;
-		event.preventDefault();
+	let hasMoved = true;
+	setInterval(() => {
+		desktop.classList.toggle("paused", !hasMoved);
+		hasMoved = false;
+	}, 2500);
+	function handleStart(event) {
+		event?.preventDefault();
 		desktop.classList.add("flag-dragging");
 		if (event.target.classList.contains("draggable")) {
 			dragFlag = 1;
-			setTimeout(() => { if (dragFlag == 1) dragFlag = 2; }, 100);
-			mouseCoords.x = event.clientX;
-			mouseCoords.y = event.clientY;
+			mouseCoords = { x: event.clientX, y: event.clientY };
+			dxy = { x: 0, y: 0 };
 			target = event.target;
 		} else if (event.target.classList.contains("window-resize")) {
 			resize = event.target.dataset.side;
@@ -82,11 +86,15 @@ import { codeToHtml } from 'shiki';
 			mouseCoords.y = event.clientY;
 			target = event.target.offsetParent;
 		}
-	});
-	document.addEventListener("mousemove", function (event) {
-		event = event || window.event;
-		event.preventDefault();
-		if (dragFlag == 1) return;
+	}
+	function handleMove(event) {
+		event?.preventDefault();
+		hasMoved = true;
+		desktop.classList.toggle("paused", false);
+		if ("touches" in event) {
+			event = event.touches[0]
+		}
+		// event.preventDefault();
 		if (event.buttons == 0) {
 			target = null;
 			desktop.classList.remove("flag-dragging");
@@ -122,39 +130,49 @@ import { codeToHtml } from 'shiki';
 					target.style.top = top + ydiff + "px";
 				}
 			} else {
-				target.style.left = target.offsetLeft + event.clientX - mouseCoords.x + "px";
+				const dx = event.clientX - mouseCoords.x;
+				const dy = event.clientY - mouseCoords.y;
+				dxy.x += dx ** 2;
+				dxy.y += dy ** 2;
+
+				target.style.left = target.offsetLeft + dx + "px";
 				if (event.clientY >= 0) {
-					target.style.top = target.offsetTop + event.clientY - mouseCoords.y + "px";
+					target.style.top = target.offsetTop + dy + "px";
 				}
 			}
-			mouseCoords.x = event.clientX;
-			mouseCoords.y = event.clientY;
+			mouseCoords = { x: event.clientX, y: event.clientY };
 		}
-	});
-	document.addEventListener("mouseup", function (event) {
+	}
+	function handleEnd(event) {
 		target = null;
 		resize = false;
+		dragFlag = 0;
 		desktop.classList.remove("flag-dragging");
-	});
+	}
+	document.addEventListener("mousedown", handleStart);
+	document.addEventListener("mousemove", handleMove);
+	document.addEventListener("mouseup", handleEnd);
+	document.addEventListener("touchstart", handleStart);
+	document.addEventListener("touchmove", handleMove);
+	document.addEventListener("touchend", handleEnd);
 	// Timer
 	let timer = document.getElementById("timer");
 	setInterval(() => timer.innerHTML = (new Date()).toLocaleTimeString("de-DE"), 1000);
 	// Import desktop
 	const shortcuts = document.getElementsByClassName("shortcut");
 	for (const shortcut of shortcuts) {
-		shortcut.addEventListener("click", function () {
+		function handleClick() {
 			if (shortcut.hasAttribute("disabled")) return;
-			if (dragFlag == 1) {
-				dragFlag = 0;
-			} else if (dragFlag == 2) {
-				dragFlag = 0;
+			if (dxy.x + dxy.y > 0) {
 				return;
 			}
 			shortcut.setAttribute("disabled", "");
 			addWindow(shortcut.dataset.title, formatWindow(shortcut), function () {
 				shortcut.removeAttribute("disabled");
 			});
-		});
+		}
+		shortcut.addEventListener("mouseup", handleClick);
+		shortcut.addEventListener("touchup", handleClick);
 	}
 	function formatWindow(shortcut) {
 		switch (shortcut.dataset.type) {

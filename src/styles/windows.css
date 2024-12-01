@@ -67,6 +67,9 @@ div{
     height: 100%;
     /*background-color: black;*/
 }
+.paused *{
+	animation-play-state: paused !important;
+}
 .wrap{
     overflow: hidden;
     position: relative;
@@ -93,7 +96,7 @@ div{
     height: 48px;
 }
 .shortcut > *{
-    pointer-events: none;
+	@apply pointer-events-none select-none;
 }
 /* Window */
 .draggable{
