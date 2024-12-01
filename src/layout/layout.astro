@@ -8,7 +8,11 @@ interface Props {
 }
 
 const { title, description, class: className ="" } = Astro.props;
-import Config from "astro.config.mjs";
+const navLinks = {
+	"About": "/about",
+	"Projects": "/projects",
+	"Compiler": "/compiler",
+}
 ---
 
 <!doctype html>
@@ -25,8 +29,9 @@ import Config from "astro.config.mjs";
 		<header class="flex justify-between px-6 py-2 row-span-1">
 			<div class="flex items-baseline gap-2 md:gap-8 hover:*:underline underline-offset-4">
 				<a href="/" class="text-3xl font-extrabold text-c1 font-mono">tipson.xyz</a>
-				<a href="/about" class="text-xl text-c2 font-thin font-mono">About</a>
-				<a href="/compiler" class="text-xl text-c2 font-thin font-mono">Compiler</a>
+				{Object.entries(navLinks).map(([name, link]) => 
+					<a href={link} class="text-xl text-c2 font-thin font-mono">{name}</a>
+				)}
 			</div>
 			<div class="flex gap-1">
 				<Button variant="ghost" size="icon" class="relative">
