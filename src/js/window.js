@@ -73,7 +73,9 @@ import { codeToHtml } from 'shiki';
 		hasMoved = false;
 	}, 2500);
 	function handleStart(event) {
-		event?.preventDefault();
+		if (!("touches" in event)) {
+			event.preventDefault();
+		}
 		desktop.classList.add("flag-dragging");
 		if (event.target.classList.contains("draggable")) {
 			dragFlag = 1;
@@ -88,11 +90,12 @@ import { codeToHtml } from 'shiki';
 		}
 	}
 	function handleMove(event) {
-		event?.preventDefault();
 		hasMoved = true;
 		desktop.classList.toggle("paused", false);
 		if ("touches" in event) {
 			event = event.touches[0]
+		} else {
+			event.preventDefault();
 		}
 		// event.preventDefault();
 		if (event.buttons == 0) {
