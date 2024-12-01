@@ -206,6 +206,7 @@ import { codeToHtml } from 'shiki';
 					return shortcut.cached;
 				}
 				const body = shortcut.querySelector("template").content.cloneNode(true).children[0];
+				const contentWrapper = body.querySelector(".content");
 				const script = body.querySelector("script");
 				let input = JSON.parse(script.textContent);
 				if ("field" in script.dataset) {
@@ -221,19 +222,19 @@ import { codeToHtml } from 'shiki';
 				const base = script.dataset.fileUrlPrefix;
 
 				const path = body.querySelector("#path");
-				path.innerText = url.join("/") + "/";
+				path.innerText = "/" + url.join("/");
 
 				function replaceExplorerContent(element) {
-					body.removeChild(content);
-					body.appendChild(element);
+					contentWrapper.removeChild(content);
+					contentWrapper.appendChild(element);
 					content = element;
 					elements.push(element);
-					path.innerText = url.join("/") + "/";
+					path.innerText = "/" + url.join("/");
 				}
 				let content = explorerHelper(url, input, replaceExplorerContent, function (name) {
 					return [base, [...url, name].join('/')];
 				});
-				body.append(content);
+				contentWrapper.append(content);
 				elements.push(content);
 
 				const back = body.querySelector(".explorer-back");
@@ -241,9 +242,9 @@ import { codeToHtml } from 'shiki';
 					if (elements.length > 1) {
 						elements.pop();
 						url.pop();
-						path.innerText = url.join("/") + "/";
-						body.removeChild(content);
-						body.appendChild(elements[elements.length - 1]);
+						path.innerText = "/" + url.join("/");
+						contentWrapper.removeChild(content);
+						contentWrapper.appendChild(elements[elements.length - 1]);
 						content = elements[elements.length - 1];
 					}
 				});
@@ -304,14 +305,15 @@ import { codeToHtml } from 'shiki';
 				item.addEventListener("click", function (event) {
 					event.preventDefault();
 					event.stopPropagation();
-					simpleWindow(base, filePath);
+					url.push(x.name);
+					callback(explorerFileContent(base, filePath));
 				});
 			}
 			content.appendChild(item);
 		}
 		return content;
 	}
-	function simpleWindow(base, filePath) {
+	function explorerFileContent(base, filePath) {
 		const url = base + filePath;
 		const ext = url.split('.').pop().toLowerCase();
 		let content = null;
@@ -351,17 +353,14 @@ import { codeToHtml } from 'shiki';
 				content.setAttribute("data", url);
 				break;
 			default:
+				content = document.createElement("div");
 				fetch(url).then(x => x.text()).then(async text => {
-					content = document.createElement("div");
-					content.classList.add("h-full", "w-full", "overflow-auto", "scrollbar", "text-c3")
 					const lang = Object.keys(bundledLanguages).includes(ext) ? ext : 'plaintext';
 					content.innerHTML = await codeToHtml(text, { lang: lang, theme: 'github-dark' });
 					content.children[0].style = "";
-					addWindow(filePath, content);
 				});
-				return;
 		}
-		addWindow(filePath, content);
+		return content;
 	}
 	function remapExplorerJSON(json, mapping) {
 		const mapper = (x) => {

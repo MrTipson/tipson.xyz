@@ -300,16 +300,11 @@ div{
     font-size: .7em;
     word-break: break-all;
 }
-.type-explorer > .directory{
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
-    width: 100%;
-    bottom: 0;
-    top: 1.4em;
-    padding-top: 1em;
-    position: absolute;
-    overflow: auto;
+.type-explorer > .content {
+	@apply w-full bottom-0 top-8 pt-2 overflow-auto absolute
+}
+.directory {
+	@apply flex flex-wrap content-start
 }
 .type-explorer > .address-bar{
     @apply shadow-[0_0_3px_1px_black] bg-c2-fill/50 flex items-center text-lg
