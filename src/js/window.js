@@ -316,9 +316,16 @@ import { codeToHtml } from 'shiki';
 		}
 		return content;
 	}
+	const customAssociations = {
+		'p0': 'py',
+		'p1': 'c',
+	}
 	function explorerFileContent(base, filePath) {
 		const url = base + filePath;
-		const ext = url.split('.').pop().toLowerCase();
+		let ext = url.split('.').pop().toLowerCase();
+		if (ext in customAssociations) {
+			ext = customAssociations[ext];
+		}
 		let content = null;
 		switch (ext) {
 			case "png":
