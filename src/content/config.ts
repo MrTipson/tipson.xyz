@@ -35,7 +35,7 @@ export const collections = {
 		type: 'content',
 		schema: z.object({
 			title: z.string(),
-			technologies: z.string(),
+			technologies: z.array(z.string()),
 			links: z.record(z.string(), z.string()).default({}),
 			image: z.string().optional(),
 		}),
