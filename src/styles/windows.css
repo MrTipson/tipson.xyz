@@ -301,7 +301,7 @@ div{
     word-break: break-all;
 }
 .type-explorer > .content {
-	@apply w-full bottom-0 top-8 pt-2 overflow-auto absolute
+	@apply w-full bottom-0 top-8 mt-2 overflow-auto absolute
 }
 .directory {
 	@apply flex flex-wrap content-start
