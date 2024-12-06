@@ -6,7 +6,7 @@ import { getCollection, type CollectionEntry } from "astro:content";
 import DesktopShortcut, { ExplorerWindow, ListWindow, SimpleWindow } from "@/components/DesktopShortcut.astro";
 import Project2ListWindow from "@/components/Project2ListWindow.astro";
 import { getEntry } from "astro:content";
-import { GithubWindow } from "@/components";
+import { GithubWindow, Icon } from "@/components";
 
 const projects = await getCollection('projects');
 const about = await getEntry("simple", "about")
@@ -58,18 +58,42 @@ const about = await getEntry("simple", "about")
 					</div>
 				</div>
 			</div>
-			<DesktopShortcut title="Projects" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="50px" type="list">
-				<ListWindow mapping={{
+			<DesktopShortcut title="Projects" xpos="20px" ypos="50px" type="list">
+				<Icon slot="icon" variant="folder"/>
+				<ListWindow slot="content" mapping={{
 					name: (entry: CollectionEntry<"projects">) => entry.data.title,
 					content: Project2ListWindow,
 				}} values={projects}/>
 			</DesktopShortcut>
-			<DesktopShortcut title="Recursion" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="150px" type="simple"><SimpleWindow content_web={"/?recursion"}/></DesktopShortcut>
-			<DesktopShortcut title="About me" icon="/portal/img/desktop-icons/folder.png" xpos="20px" ypos="250px" type="simple"><SimpleWindow content={about}/></DesktopShortcut>
-			<DesktopShortcut title="WebStg" icon="/portal/img/desktop-icons/folder.png" xpos="120px" ypos="50px" type="explorer"><GithubWindow user="mrtipson" repository="webstg" tree_sha="master"/>
+			<DesktopShortcut title="Recursion" xpos="20px" ypos="150px" type="simple">
+				<Icon slot="icon" variant="spiral"/>
+				<SimpleWindow slot="content" content_web={"/?recursion"}/>
 			</DesktopShortcut>
-			<DesktopShortcut title="FogBuddy" icon="/portal/img/desktop-icons/folder.png" xpos="120px" ypos="150px" type="explorer"><GithubWindow user="mrtipson" repository="fogbuddy" tree_sha="master"/></DesktopShortcut>
-			<DesktopShortcut title="Compiler" icon="/portal/img/desktop-icons/folder.png" xpos="120px" ypos="250px" type="explorer"><GithubWindow user="mrtipson" repository="compiler" tree_sha="master"/></DesktopShortcut>
+			<DesktopShortcut title="About me" xpos="20px" ypos="250px" type="simple">
+				<Icon slot="icon" variant="person"/>
+				<SimpleWindow slot="content" content={about}/>
+			</DesktopShortcut>
+			<DesktopShortcut title="WebStg" xpos="120px" ypos="50px" type="explorer">
+				<div slot="icon" class="text-c2-accent w-12 h-12 relative">
+					<Icon variant="folder"/>
+					<Icon variant="github" class="absolute inset-0 m-auto text-c0 w-6 h-6"/>
+				</div>
+				<GithubWindow slot="content" user="mrtipson" repository="webstg" tree_sha="master"/>
+			</DesktopShortcut>
+			<DesktopShortcut title="FogBuddy" xpos="120px" ypos="150px" type="explorer">
+				<div slot="icon" class="text-c2-accent w-12 h-12 relative">
+					<Icon variant="folder"/>
+					<Icon variant="github" class="absolute inset-0 m-auto text-c0 w-6 h-6"/>
+				</div>
+				<GithubWindow slot="content" user="mrtipson" repository="fogbuddy" tree_sha="master"/>
+			</DesktopShortcut>
+			<DesktopShortcut title="Compiler" xpos="120px" ypos="250px" type="explorer">
+				<div slot="icon" class="text-c2-accent w-12 h-12 relative">
+					<Icon variant="folder"/>
+					<Icon variant="github" class="absolute inset-0 m-auto text-c0 w-6 h-6"/>
+				</div>
+				<GithubWindow slot="content" user="mrtipson" repository="compiler" tree_sha="master"/>
+			</DesktopShortcut>
 		</div>
 		<div id="toolbar-bottom" class="toolbar">
 			<div id="tabs" class="toolbar-item"></div>

@@ -4,18 +4,17 @@ export { default as ListWindow } from '@/components/ListWindow.astro';
 export { default as SimpleWindow } from '@/components/SimpleWindow.astro';
 type Props = {
 	title: string,
-	icon: string,
 	xpos: string,
 	ypos: string,
 	type: 'explorer' | 'simple' | 'list' | 'custom',
 };
-const { title, icon, xpos, ypos, type } = Astro.props;
+const { title, xpos, ypos, type } = Astro.props;
 ---
 
 <div class="draggable shortcut" style={{ top: ypos, left: xpos }} data-type={type} data-title={title}>
-	<img src={icon}/>
+	<slot name="icon"/>
 	<div>{title}</div>
 	<template>
-		<slot/>
+		<slot name="content"/>
 	</template>
 </div>
