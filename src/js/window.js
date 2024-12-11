@@ -146,7 +146,7 @@ import { codeToHtml } from 'shiki';
 			mouseCoords = { x: event.clientX, y: event.clientY };
 		}
 	}
-	function handleEnd(event) {
+	function handleEnd() {
 		target = null;
 		resize = false;
 		dragFlag = 0;

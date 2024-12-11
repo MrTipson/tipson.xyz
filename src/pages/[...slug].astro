@@ -4,7 +4,7 @@ import Layout from "@/layout/layout.astro";
 import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
 	return getCollection('simple').then(entries => 
 		entries.map((entry) => ({
 			params: { slug: entry.slug },

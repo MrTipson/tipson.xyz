@@ -16,4 +16,4 @@ const dataset = {
 	... field && { "data-field": field },
 }
 ---
-<script type="application/json" {...dataset} set:html={Astro.props.content}/>
+<script is:inline type="application/json" {...dataset} set:html={Astro.props.content}/>
