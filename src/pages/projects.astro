@@ -11,7 +11,7 @@ const rendered = await Promise.all(projects.map(x => x.render().then(x => x.Cont
 	<div class="flex flex-wrap justify-around gap-6 md h-full overflow-auto">
 	{rendered.map((Rendered,i) => 
 		<div class="bg-gray-900 p-3 rounded my-5 border border-c3 hover:border-c0 w-full mx-5 md:w-2/3">
-			<div class="pl-4 hover:before:border-c0 pointer-events-none">
+			<div class="pl-4">
 				<div class="text-c0">{projects[i].data.title}</div>
 				<div class="flex flex-wrap gap-2 text-c3 text-sm h-fit">Technologies: {projects[i].data.technologies.map(x =>
 					<span class="text-c2 px-1 bg-c3-fill rounded-sm">{x}</span>
