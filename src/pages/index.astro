@@ -80,6 +80,13 @@ const about = await getEntry("simple", "about")
 				</div>
 				<GithubWindow slot="content" user="mrtipson" repository="webstg" tree_sha="master"/>
 			</DesktopShortcut>
+			<DesktopShortcut title="WebStg" xpos="220px" ypos="50px" type="simple">
+				<div slot="icon" class="text-purple-500 w-12 h-12 relative">
+					<Icon variant="folder"/>
+					<Icon variant="mesh_globe" class="absolute inset-0 m-auto text-c0 w-6 h-6"/>
+				</div>
+				<SimpleWindow slot="content" content_web="https://mrtipson.github.io/webstg"/>
+			</DesktopShortcut>
 			<DesktopShortcut title="FogBuddy" xpos="120px" ypos="150px" type="explorer">
 				<div slot="icon" class="text-c2-accent w-12 h-12 relative">
 					<Icon variant="folder"/>
@@ -93,6 +100,13 @@ const about = await getEntry("simple", "about")
 					<Icon variant="github" class="absolute inset-0 m-auto text-c0 w-6 h-6"/>
 				</div>
 				<GithubWindow slot="content" user="mrtipson" repository="compiler" tree_sha="master"/>
+			</DesktopShortcut>
+			<DesktopShortcut title="Compiler" xpos="220px" ypos="250px" type="simple">
+				<div slot="icon" class="text-purple-500 w-12 h-12 relative">
+					<Icon variant="folder"/>
+					<Icon variant="mesh_globe" class="absolute inset-0 m-auto text-c0 w-6 h-6"/>
+				</div>
+				<SimpleWindow slot="content" content_web="/compiler?noheader"/>
 			</DesktopShortcut>
 		</div>
 		<div id="toolbar-bottom" class="toolbar">

@@ -72,3 +72,10 @@ const navLinks = {
 		border-width: 6px 6px 0px 6px;
 	}
 </style>
+
+<script>
+	const params = new URLSearchParams(document.location.search);
+	if (params.has("noheader")) {
+		document.querySelector("header")?.classList.add("h-0", "!p-0");
+	}
+</script>
