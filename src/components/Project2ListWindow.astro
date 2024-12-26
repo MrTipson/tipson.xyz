@@ -11,7 +11,9 @@ const { Content } = await entry.render();
 <>
 	<div class="px-4 text-c3 -mb-10">
 		{entry.data.links && <div>#{Object.entries(entry.data.links).map(([k,v]) => <a class="ml-2" href={v}>{k}</a>)}</div>}
-		<div># {entry.data.technologies}</div>
+		<div># {entry.data.technologies.map(tech => (
+			<span class="mr-2 text-c2 px-1 bg-c3-fill rounded-sm">{tech}</span>
+		))}</div>
 	</div>
 	<h1>{entry.data.title}</h1>
 	<Content/>
