@@ -46,17 +46,12 @@ const about = await getEntry("simple", "about")
 		<div id="desktop" class="desktop">
 			<div class="wallpaper">
 				<div class="inset-0 bg-gradient-to-br from-blue-900 to-sky-700 absolute"></div>
-				<div class="sun"></div>
+				<div class="sun">
+					<div class="sun-center"></div>
+				</div>
 				<div class="stars"></div>
 				<div class="trees"></div>
 				<div class="mountains"></div>
-				<div class="floor">
-					<div class="floor-rotate">
-						<div class="floor-bg">
-							<div class="floor-grid"></div>
-						</div>
-					</div>
-				</div>
 			</div>
 			<DesktopShortcut title="Projects" xpos="20px" ypos="50px" type="list">
 				<Icon slot="icon" variant="folder"/>
@@ -135,9 +130,7 @@ const about = await getEntry("simple", "about")
 }
 .mountains {
 	position:absolute;
-	top: 0;
-	bottom: 110px;
-	left: 0;
+	inset: 0;
 	width: 200%;
 	background: url("/portal/img/bg/Mountains.svg") repeat-x bottom;
 	background-size: 100vw;
@@ -155,55 +148,26 @@ const about = await getEntry("simple", "about")
 }
 .trees {
 	position:absolute;
-	top: 0;
-	bottom: 110px;
-	left: 0;
+	inset: 0;
 	width: 200%;
 	background: url("/portal/img/bg/Trees.svg") repeat-x bottom;
 	background-size: 100vw;
 	animation: roll linear 30s infinite;
 }
 .sun {
+	position: absolute;
+	background: radial-gradient(circle at 65% 80%, rgba(214, 74, 31, 0.774) 0%, rgba(248, 30, 175, 0.5) 30%, rgba(0,0,0,0) 60%);
+	inset: 0;
+	animation: float ease-in-out 25s infinite alternate-reverse;
+}
+.sun-center {
 	position:absolute;
 	right: 25%;
-	bottom: 220px;
+	bottom: 10%;
 	width: 20vw;
 	height: 20vw;
 	background: url("/portal/img/bg/Sun.svg") repeat-x bottom;
 	background-size: 20vw;
-	animation: float ease-in-out 50s infinite alternate-reverse;
-}
-.floor {
-	position:absolute;
-	top: calc(100vh - 220px);
-	bottom: 0;
-	left: 50%;
-	width: 200%;
-	perspective: 140px;
-	perspective-origin: top center;
-	transform: translateX(-50%);
-	/*animation: floor linear 1s infinite;*/
-}
-.floor-rotate {
-	position: relative;
-	width: 100%;
-	height: 100%;
-	transform: rotate3d(1,0,0,90deg);
-}
-.floor-grid {
-	position: relative;
-	width:300%;
-	height:100%;
-	background-size: 5vw 3vw;
-	background-image:
-		conic-gradient(from 90deg at 2px 2px,black 90deg, transparent 0);
-	animation: floor linear 30s infinite;
-}
-.floor-bg {
-	position: relative;
-	width: 100%;
-	height: 100%;
-	background-image: linear-gradient(to top, rgb(255, 68, 232), black);
 }
 @keyframes roll {
 	from {
@@ -220,15 +184,6 @@ const about = await getEntry("simple", "about")
 	}
 	to {
 		transform: translateY(75%);
-	}
-}
-
-@keyframes floor {
-	from {
-		transform: translateX(-25%);
-	}
-	to {
-		transform: translateX(-75%);
 	}
 }
 </style>
