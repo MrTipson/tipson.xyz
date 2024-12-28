@@ -210,7 +210,7 @@ import { codeToHtml } from 'shiki';
 				}
 				const body = shortcut.querySelector("template").content.cloneNode(true).children[0];
 				const contentWrapper = body.querySelector(".content");
-				const script = body.querySelector("script");
+				const script = body.querySelector("script[type=\"application/json\"]");
 				let input = JSON.parse(script.textContent);
 				if ("field" in script.dataset) {
 					input = input[script.dataset.field];
