@@ -1,0 +1,23 @@
+---
+import "@/styles/markdown.css";
+import Layout from "@/layout/layout.astro";
+import { getCollection } from "astro:content";
+
+const posts = await getCollection("posts");
+---
+
+<Layout title='tipson.xyz' description='Website about me and my projects'>
+	<div class="flex flex-wrap justify-around gap-6 md h-full overflow-auto">
+		{posts.map(post =>
+		<a href={`/posts/${post.slug}`}
+			class="bg-gray-900 p-3 rounded my-5 border border-c3 hover:border-c0 w-full mx-5 md:w-2/3 h-fit decoration-transparent">
+			<div class="pl-4">
+				<div class="text-c0">{post.data.title}</div>
+				<div class="flex flex-wrap gap-2 text-c3 text-sm h-fit text">{post.data.changes[0].date.toDateString()}
+				</div>
+				<span class="text-c2">{post.data.description}</span>
+			</div>
+		</a>
+		)}
+	</div>
+</Layout>

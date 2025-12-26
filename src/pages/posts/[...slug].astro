@@ -1,0 +1,23 @@
+---
+import Markdown from "@/layout/markdown.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+
+export async function getStaticPaths() {
+	return (await getCollection("posts"))
+		.filter((entry) => !import.meta.env.PROD || !entry.data.draft)
+		.map((entry) => ({
+			params: { slug: entry.slug },
+			props: { entry },
+		}));
+}
+
+interface Props {
+	entry: CollectionEntry<"posts">;
+}
+const { entry } = Astro.props;
+const { Content, headings } = await entry.render();
+---
+
+<Markdown {...entry.data} {headings}>
+	<Content />
+</Markdown>

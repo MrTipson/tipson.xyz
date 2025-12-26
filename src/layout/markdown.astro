@@ -11,7 +11,7 @@ import { getEntry } from "astro:content";
 
 type Props = {
 	headings: MarkdownHeading[];
-	sidebar: SidebarEntry[];
+	sidebar?: SidebarEntry[];
 } & MarkdownType;
 const { title, description, headings, sidebar, changes } = Astro.props;
 const authors = new Map<string, AuthorType>();
@@ -45,10 +45,11 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 
 <L {title} {description}>
 	<div class="columns bg-c1-fill overflow-auto">
-		<nav id="sidebar" class="sidebar">
-			<div class="sidebarPullMark"/>
-			<div class="sidebarContent scrollbar" set:html={constructSidebar(sidebar)}/>
-		</nav>
+		{sidebar && 
+			<nav id="sidebar" class="sidebar">
+				<div class="sidebarPullMark"/>
+				<div class="sidebarContent scrollbar" set:html={constructSidebar(sidebar)}/>
+			</nav>}
 		<main class="content scrollbar md pb-10 max-w-full">
 			<slot />
 			<hr/>
@@ -56,7 +57,7 @@ function constructSidebar(sidebar: SidebarEntry[]): string {
 			<div class="mx-4">
 				{
 					changes.map(x => (
-						<div>[{new Date(x.date).toLocaleDateString()}] {authors.get(x.author.id)?.["display-name"]}: {x.comment}</div>
+						<div>[{x.date.toISOString().split('T')[0]}] {authors.get(x.author.id)?.["display-name"]}: {x.comment}</div>
 					))
 				}
 			</div>

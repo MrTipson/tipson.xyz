@@ -27,6 +27,10 @@ export const collections = {
 		type: 'content',
 		schema: markdownSchema,
 	}),
+	'posts': defineCollection({
+		type: 'content',
+		schema: markdownSchema,
+	}),
 	'authors': defineCollection({
 		type: 'data',
 		schema: authorSchema,
