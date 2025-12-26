@@ -257,8 +257,8 @@ import { codeToHtml } from 'shiki';
 			case "simple": {
 				const content = shortcut.querySelector("template").content.cloneNode(true);
 				const maybeIframe = content.children[0];
-				if (maybeIframe.tagName === "IFRAME" && maybeIframe.src === "/?recursion") {
-					maybeIframe.src = `/?rnd=${Number(new Date())}`;
+				if (maybeIframe.tagName === "IFRAME" && maybeIframe.src?.includes("/?recursion")) {
+					maybeIframe.src = maybeIframe.src.replace("/?recursion", `/?rnd=${Number(new Date())}`);
 				}
 				return content;
 			}
