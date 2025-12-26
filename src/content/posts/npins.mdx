@@ -1,0 +1,217 @@
+---
+title: Switching from flakes to npins
+description: >-
+  Recently I decided to try out npins for both my system and home manager configurations. It went about as well as you would expect, but now that I'm on the other side its time to do some reflecting.
+draft: false
+changes:
+  - date: 2025-12-26
+    author: '1'
+    comment: Initial post
+---
+
+# npins instead of flakes?
+
+While I have no quarrels with flakes or people who like them, there are things that annoyed me enough to want to try out living without them. I'll leave some grievances about flakes at the end since I'd rather talk about my migration.
+
+## Getting started with npins
+
+To get started with npins (coming from flakes):
+```bash
+// ~/my/nixos/config/
+# Use `nix-shell -p npins` if you don't have it in your system/user packages
+npins init --bare
+npins import-flake
+```
+
+This will initialize a directory at `npins` and populate it with (updated) entries from your flake lockfile. You will access these by importing the helper with `import ./npins`. These are quite similar to what `inputs` do with flakes with one big caveat: they only contain information about the source (similar to what would be stored in `sourceInfo` for an input).
+
+This is where npins' job is done; the rest is up to you.
+
+## System configuration
+> This [commit](https://github.com/MrTipson/systems.nix/commit/c9ca50f6d6900807b2c82eefe29b19f7badf2fad) is where I switched. I will include some relevant parts here but you can reference it if you need full context.
+
+### Outputs
+Starting with my nixos configuration, the first thing you will notice is that it mimics the `outputs` structure of flakes. Indeed, I find no issue with making configurations composable and easy to follow/use for others:
+```nix
+// default.nix
+{
+  overrides ? {
+    multiseat-nix.outPath = "/home/tipson/Dev/multiseat-nix";
+  },
+  sources ? (import ./npins // overrides),
+  ...
+}:
+{
+  inherit sources;
+  outPath = ./.;
+
+  nixosConfigurations = import ./hosts sources;
+  nixosModules = import ./modules;
+}
+```
+```nix
+// repl
+# usage is equivalent to builtins.getFlake but with control over inputs
+> import (builtins.fetchGit https://github.com/mrtipson/systems.nix) {}
+{
+  nixosConfigurations = { ... };
+  nixosModules = { ... };
+  outPath = /nix/store/qgy93654j6yxak1a0arz7x93h3jsm403-source;
+  sources = { ... };
+}
+```
+
+### Entrypoint
+To actually setup the entrypoint to be the equivalent as with flakes, we import the same file that is exposed by `lib.nixosSystem`:
+```nix
+// hosts/default.nix
+sources:
+with builtins;
+let
+  nixosSystem = import "${sources.nixpkgs}/nixos/lib/eval-config.nix";
+  isSystem = path: pathExists (./${path}/system.nix);
+  hosts = filter isSystem (attrNames (readDir ./.));
+  importHost =
+    host:
+      {
+        ${host} = nixosSystem (import ./${host}/system.nix sources);
+      };
+in
+builtins.foldl' (acc: x: acc // x) { } (map importHost hosts)
+```
+
+### specialArgs
+The only thing left is to replace usage of the `inputs` specialArg. This can be done without even importing the source first:
+```diff
+// hosts/masina/system.nix
+-{ self, nixpkgs, ... }@inputs:
+-rec {
++sources: {
+-  specialArgs = { inherit inputs system; };
++  specialArgs = { inherit sources; };
+   system = "x86_64-linux";
+   modules = [
+     ./configuration.nix
+-    inputs.sops-nix.nixosModules.sops
++    "${sources.sops-nix}/modules/sops"
+   ];
+}
+```
+But sometimes you will still need to import stuff:
+```diff
+// modules/multiseat.nix
+ {
+   config,
+   pkgs,
+   inputs,
+   sources,
+   ...
+ }:
+ let
++  multiseat-nix = import sources.multiseat-nix { overrides = sources; };
++  inherit (inputs.multiseat-nix.packages.${pkgs.system})
+-  inherit (multiseat-nix.packages)
+     cage
+     drm-lease-manager
+     ;
+   in
+     ...
+```
+
+### Switching
+Building and switching your configuration now becomes `sudo nixos-rebuild build -I nixos-config=. --attr=nixosConfigurations.<hostname>`.
+
+---
+
+## Home manager configuration
+> This [commit](https://github.com/MrTipson/home.nix/commit/7fba683cf1b2f326ceb27611fe64faa77738d274) is where I switched. I will include some relevant parts here but you can reference it if you need full context.
+
+### Entrypoint
+Since rebuilding is done by the home-manager cli, and it in turn calls some internal home-manager nix functions, we need to patch the functionality to allow ourselves the more broad entrypoint.
+```diff
+// home-manager/home-manager.nix
+ {
+   pkgs ? import <nixpkgs> { },
+   confPath,
+   confAttr ? null,
+   check ? true,
+ }:
+ let
+-
+-  env = import ../modules {
+-    configuration =
+-      if confAttr == "" || confAttr == null then confPath else (import confPath).${confAttr};
+-    pkgs = pkgs;
+-    check = check;
+-  };
+-
++  inherit (pkgs) lib;
++  resolved = (conf: if builtins.isFunction conf then conf { } else conf) (import confPath);
+ in
+-{
+-  inherit (env)
+-    activationPackage
+-    config
+-    pkgs
+-    options
+-    ;
+-}
++if confAttr == "" || confAttr == null then
++  resolved
++else
++  lib.getAttrFromPath (lib.splitString "." confAttr) resolved
+```
+Arguments are left unchanged even though `check` is now ignored as it can be controlled with `home-manager.lib.homeConfiguration`. To rebuild, you now have to use
+`home-manager switch -f ~/my/hm/config -A myattr -I home-manager=~/patched/hm`.
+
+### Simple setup
+Next, I'll show you how I setup HM so I don't have to clone and patch it myself, as well as not needing to write `-I home-manager=...` in subsequent runs.
+```nix
+// default.nix
+{
+  overrides ? { },
+  sources ? import ./npins // overrides,
+  ...
+}:
+let
+  pkgs = import sources.nixpkgs { };
+  home-manager = import (pkgs.applyPatches {
+    name = "home-manager-patched";
+    src = sources.home-manager;
+    patches = [ ./flake-like-entrypoint.patch ];
+  }) { inherit pkgs; };
+in
+{
+  homeConfigurations.example = home-manager.lib.homeManagerConfiguration {
+    pkgs = import sources.nixpkgs { overlays = [ ]; };
+    extraSpecialArgs = { inherit sources; };
+    modules = [ ./home.nix ];
+  };
+  patchedHM = home-manager.path;
+}
+```
+A patched `home-manager` is created, and used to create the configuration. If you use `programs.home-manager.enable = true;` this will also make it so that home manager will from now on use this (patched) version of itself. Last thing that is done is that the store path to the patched HM is exposed, so for the initial rebuild all you need is `home-manager switch -f ~/Dev/home.nix/ -A homeConfigurations.masina -I home-manager=$(nix eval --file default.nix --raw patchedHM)`
+> `nix-store --realise $(nix-instantiate --eval --raw -A patchedHM)` may also be used instead of nix eval
+
+---
+
+## Drawbacks
+- The impure by default nature of non-flake configurations will for sure bite you in the ass sooner or later.
+- Widespread adoption of flakes and neglection of `default.nix` files in projects makes it so one cannot simply import a source and expect a similar interface to a project's outputs to what flakes have.
+- Home manager setup requires patching.
+
+## Flake grievances
+- `<input>.follows.nixpkgs = "nixpkgs"`
+> This pattern makes sure inputs are using the same nixpkgs version, which prevents duplication and can help with compatibility issues. At the same time, it may introduce issues of its own, so it can't really be the default behaviour. The end result is that every input gets bloated, instead of just writing `<input>.url = <url>`
+
+- Ignoring system registry when updating inputs
+> I get that the registry is a source of impurity, but updating the lockfile is inherently an impure operation because it depends on when it is initiated. This just makes it impossible for people to lock to the same nixpkgs across different flakes on the system (e.g. devshells, standalone HM, etc.)
+
+- Consuming shell.nix, package.nix, default.nix
+> People *can* just use flakes for everything, replacing existing nix expression naming norms, while adding flakes to the many overloaded terms of the nix ecosystem
+
+- Making shit more annoying
+> Im as masochistic as they get, but making me stage a file to git every time im testing something, toggling on flags like `--override-input` and `--impure`, or just doing stuff in the repl gets annoying quickly. 
+
+- Throwing around the system string like a hot potato
+> Oh, I love me some `pkgs.stdenv.hostPlatform.system`, give me more `x86_64-linux`, please.
